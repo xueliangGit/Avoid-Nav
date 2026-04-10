@@ -37,6 +37,13 @@ async function processData() {
 
   console.log(`📊 原始数据量: ${data.length} 条`);
 
+  // 提取方向信息的辅助函数
+  const extractDirection = (name: string): string | null => {
+    const pattern = /(西向东|东向西|南向北|北向南|进京|出京|双向|由[东西南北]向[东西南北])/;
+    const match = name.match(pattern);
+    return match ? match[0] : null;
+  };
+
   // 1. 过滤掉不完整的点，并提取核心字段
   const refined = data.map(item => {
     const info = AA_MAP[item.aa] || { label: '未知', risk: 0, color: 'gray' };
@@ -44,7 +51,10 @@ async function processData() {
         item.position[0], // 经度
         item.position[1], // 纬度
         item.aa,          // 原类型 ID
-        info.risk         // 风险等级 (1-3)
+        info.risk,        // 风险等级 (1-3)
+        item.href,        // 详情链接后缀
+        item.name,        // 点位名称
+        extractDirection(item.name) // 方向信息 [6]
     ];
   });
 
