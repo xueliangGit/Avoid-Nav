@@ -30,11 +30,14 @@ export interface RouteRisk {
 }
 
 // 用户手动添加的避让区
+export type ManualAvoidSize = 'small' | 'medium' | 'large';
+
 export interface ManualAvoidArea {
   id: string;
   lng: number;
   lat: number;
   label: string;
+  size?: ManualAvoidSize; // 默认 medium（向后兼容）
 }
 
 // 用户添加的途经点

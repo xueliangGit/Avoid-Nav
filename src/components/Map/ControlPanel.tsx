@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Navigation,
   X,
@@ -16,11 +16,15 @@ import {
   ArrowDownUp,
   History,
   Save,
+  ShieldOff,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import type {
   PlaceItem,
   Waypoint,
   ManualAvoidArea,
+  ManualAvoidSize,
   RouteRisk,
 } from '@/lib/types';
 
@@ -42,8 +46,10 @@ interface ControlPanelProps {
 
   // 风险
   avoidedRisks: RouteRisk[];
+  safelyIgnoredRisks: RouteRisk[];
   routeRisks: RouteRisk[];
   ignoredRiskIds: Set<string>;
+  forcedRiskIds: Set<string>;
 
   // 路线
   routeInfo: RouteInfo | null;
@@ -63,9 +69,11 @@ interface ControlPanelProps {
   onRemoveWaypoint: (id: string) => void;
   onRemoveAvoidArea: (id: string) => void;
   onToggleAddWaypoint: () => void;
-  onToggleAddAvoid: () => void;
+  onStartAddAvoid: (size: ManualAvoidSize) => void;
+  pendingAvoidSize: ManualAvoidSize;
   onPlan: () => void | Promise<void>;
   onToggleIgnoreRisk: (id: string) => void;
+  onToggleForceRisk: (id: string) => void;
   onFocusRisk: (risk: RouteRisk) => void;
   onSwapEndpoints: () => void;
   onClearStart: () => void;
@@ -73,6 +81,9 @@ interface ControlPanelProps {
   onOpenHistory: () => void;
   onSaveRoute: () => void;
   canSave: boolean;
+
+  // 布局模式：constrained = 桌面端固定高度容器（内部滚动）；flow = 手机端自然流式（外层滚动）
+  variant?: 'constrained' | 'flow';
 }
 
 const formatDistance = (meters: number): string => {
@@ -96,8 +107,10 @@ const ControlPanel = ({
   waypoints,
   manualAvoidAreas,
   avoidedRisks,
+  safelyIgnoredRisks,
   routeRisks,
   ignoredRiskIds,
+  forcedRiskIds,
   routeInfo,
   planning,
   status,
@@ -107,9 +120,11 @@ const ControlPanel = ({
   onRemoveWaypoint,
   onRemoveAvoidArea,
   onToggleAddWaypoint,
-  onToggleAddAvoid,
+  onStartAddAvoid,
+  pendingAvoidSize,
   onPlan,
   onToggleIgnoreRisk,
+  onToggleForceRisk,
   onFocusRisk,
   onSwapEndpoints,
   onClearStart,
@@ -117,8 +132,10 @@ const ControlPanel = ({
   onOpenHistory,
   onSaveRoute,
   canSave,
+  variant = 'constrained',
 }: ControlPanelProps) => {
   const activeRiskIds = new Set(routeRisks.map((r) => r.id));
+  const [safelyExpanded, setSafelyExpanded] = useState(false);
 
   // input 保持非受控（让 AMap.AutoComplete 接管），仅当外部 start/end 变化时
   // 主动同步到 DOM 的 value，避免 React 因 key 变化销毁 input 导致 AutoComplete 失效。
@@ -145,8 +162,13 @@ const ControlPanel = ({
     }
   }, [end]);
 
+  const isFlow = variant === 'flow';
+  const rootClass = isFlow
+    ? 'bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-white/10 flex flex-col'
+    : 'bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-white/10 flex flex-col overflow-hidden h-full';
+
   return (
-    <div className="bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-white/10 flex flex-col overflow-hidden h-full">
+    <div className={rootClass}>
         {/* 标题栏 */}
         <div className="flex items-center justify-between mb-6 px-1">
           <div className="flex items-center space-x-3">
@@ -296,18 +318,38 @@ const ControlPanel = ({
               <ShieldAlert className="w-3 h-3 text-rose-400" />
               <span>手动避让区 ({manualAvoidAreas.length})</span>
             </h3>
-            <button
-              type="button"
-              onClick={onToggleAddAvoid}
-              className={`flex items-center space-x-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition ${
-                mode === 'add-avoid'
-                  ? 'bg-rose-500 text-white shadow shadow-rose-500/30'
-                  : 'bg-white/5 text-rose-400 hover:bg-white/10'
-              }`}
-            >
-              <Plus className="w-3 h-3" />
-              <span>{mode === 'add-avoid' ? '点击地图添加' : '添加避让区'}</span>
-            </button>
+            {mode === 'add-avoid' && (
+              <span className="text-[10px] font-bold text-rose-400 animate-pulse">
+                点击地图添加
+              </span>
+            )}
+          </div>
+
+          {/* 三档尺寸按钮 */}
+          <div className="grid grid-cols-3 gap-1.5 mb-2">
+            {(['small', 'medium', 'large'] as const).map((size) => {
+              const labels: Record<typeof size, string> = {
+                small: '小 30m',
+                medium: '中 60m',
+                large: '大 100m',
+              };
+              const active = mode === 'add-avoid' && pendingAvoidSize === size;
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => onStartAddAvoid(size)}
+                  className={`flex items-center justify-center space-x-1 text-[10px] font-bold py-2 rounded-lg transition ${
+                    active
+                      ? 'bg-rose-500 text-white shadow shadow-rose-500/30'
+                      : 'bg-white/5 text-rose-400 hover:bg-white/10'
+                  }`}
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>{labels[size]}</span>
+                </button>
+              );
+            })}
           </div>
           {manualAvoidAreas.length > 0 && (
             <div className="space-y-1.5">
@@ -385,7 +427,7 @@ const ControlPanel = ({
 
         {/* 已纳入避让的风险点 */}
         {avoidedRisks.length > 0 && (
-          <div className="mt-6 flex-1 overflow-hidden flex flex-col border-t border-white/5 pt-5">
+          <div className={`mt-6 flex flex-col border-t border-white/5 pt-5 ${isFlow ? '' : 'flex-1 overflow-hidden'}`}>
             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center space-x-2">
               <ShieldAlert className="w-4 h-4 text-red-500" />
               <span>路线电子眼 ({avoidedRisks.length})</span>
@@ -393,9 +435,9 @@ const ControlPanel = ({
             <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
               规划路线沿途的电子眼。<span className="text-red-400 font-bold">红色</span>
               =当前路线仍命中；<span className="text-emerald-400 font-bold">绿色</span>
-              =已成功绕开；<span className="text-slate-400">灰色</span>=已忽略。点击行可定位到地图。
+              =已成功绕开；<span className="text-slate-400">灰色</span>=已取消避让。点击行可定位到地图。
             </p>
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar text-[11px]">
+            <div className={`space-y-2 pr-1 custom-scrollbar text-[11px] ${isFlow ? '' : 'flex-1 overflow-y-auto'}`}>
               {avoidedRisks.map((r) => {
                 const isIgnored = ignoredRiskIds.has(r.id);
                 const isHit = activeRiskIds.has(r.id);
@@ -437,7 +479,8 @@ const ControlPanel = ({
                           ? 'bg-slate-800 text-slate-600 hover:text-slate-300'
                           : 'bg-white/5 text-blue-400 hover:bg-blue-600 hover:text-white'
                       }`}
-                      aria-label={isIgnored ? '取消忽略' : '忽略此风险'}
+                      aria-label={isIgnored ? '恢复避让' : '取消避让此点'}
+                      title={isIgnored ? '恢复避让' : '取消避让'}
                     >
                       {isIgnored ? (
                         <EyeOff className="w-3.5 h-3.5" />
@@ -449,6 +492,78 @@ const ControlPanel = ({
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* 安全忽略（方向不冲突，默认未避让） */}
+        {safelyIgnoredRisks.length > 0 && (
+          <div className="mt-4 border-t border-white/5 pt-4">
+            <button
+              type="button"
+              onClick={() => setSafelyExpanded((v) => !v)}
+              className="w-full flex items-center justify-between mb-2 px-1 group"
+            >
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center space-x-2 group-hover:text-slate-300 transition">
+                <ShieldOff className="w-3 h-3 text-slate-500" />
+                <span>路过未避让 ({safelyIgnoredRisks.length})</span>
+              </h3>
+              {safelyExpanded ? (
+                <ChevronDown className="w-3 h-3 text-slate-500" />
+              ) : (
+                <ChevronRight className="w-3 h-3 text-slate-500" />
+              )}
+            </button>
+            {safelyExpanded && (
+              <>
+                <p className="text-[10px] text-slate-500 mb-3 leading-relaxed px-1">
+                  路过这些电子眼但方向不冲突所以未避让。如有疑虑，可点击右侧盾牌强制避让。
+                </p>
+                <div className="space-y-2 pr-1 custom-scrollbar text-[11px]">
+                  {safelyIgnoredRisks.map((r) => {
+                    const isForced = forcedRiskIds.has(r.id);
+                    return (
+                      <div
+                        key={r.id}
+                        onClick={() => onFocusRisk(r)}
+                        className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer hover:brightness-125 transition ${
+                          isForced
+                            ? 'bg-amber-500/10 border-amber-500/30'
+                            : 'bg-slate-900/40 border-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3 overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`/images/${r.type}.png`}
+                            alt=""
+                            className="w-4 h-5 object-contain shrink-0 opacity-70"
+                          />
+                          <span className={`font-semibold truncate pr-2 ${isForced ? 'text-amber-300' : 'text-slate-400'}`}>
+                            {r.name}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            onToggleForceRisk(r.id);
+                          }}
+                          className={`shrink-0 cursor-pointer p-2 rounded-xl transition-all ${
+                            isForced
+                              ? 'bg-amber-500 text-white hover:bg-amber-600'
+                              : 'bg-white/5 text-slate-500 hover:bg-amber-500/30 hover:text-amber-400'
+                          }`}
+                          aria-label={isForced ? '取消强制避让' : '强制避让此点'}
+                          title={isForced ? '取消强制避让' : '强制避让'}
+                        >
+                          <ShieldAlert className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
     </div>

@@ -6,6 +6,7 @@ import type { DebugLog } from '@/lib/types';
 
 interface DebugPanelProps {
   logs: DebugLog[];
+  variant?: 'constrained' | 'flow';
 }
 
 const typeClassMap: Record<DebugLog['type'], string> = {
@@ -16,15 +17,20 @@ const typeClassMap: Record<DebugLog['type'], string> = {
   info: 'text-blue-400',
 };
 
-const DebugPanel = ({ logs }: DebugPanelProps) => {
+const DebugPanel = ({ logs, variant = 'constrained' }: DebugPanelProps) => {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
+  const isFlow = variant === 'flow';
+  const rootClass = isFlow
+    ? 'bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-5 border border-white/10 flex flex-col w-full'
+    : 'bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-5 border border-white/10 flex flex-col overflow-hidden h-full w-full';
+
   return (
-    <div className="bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-5 border border-white/10 flex flex-col overflow-hidden h-full w-full">
+    <div className={rootClass}>
       <div className="flex items-center space-x-2 mb-4 border-b border-white/5 pb-3">
         <Terminal className="text-emerald-500 w-4 h-4" />
         <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-emerald-500">
@@ -33,7 +39,7 @@ const DebugPanel = ({ logs }: DebugPanelProps) => {
         <span className="ml-auto text-[10px] text-slate-600 font-mono">{logs.length}</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar text-[10px] font-mono leading-relaxed pr-1">
+      <div className={`space-y-2 custom-scrollbar text-[10px] font-mono leading-relaxed pr-1 ${isFlow ? '' : 'flex-1 overflow-y-auto'}`}>
         {logs.length === 0 ? (
           <div className="text-slate-600 italic">等待规划...</div>
         ) : (

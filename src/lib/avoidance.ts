@@ -2,9 +2,17 @@ import type { CameraPoint, LngLat, RouteRisk } from './types';
 import { checkDirectionConflict, computeBearing, getDirAngle } from './direction';
 import { spatialIndex } from './spatial';
 
-// 默认避让矩形：沿电子眼朝向 30m，垂直 20m
-const ALONG_HALF_M = 15;
-const ACROSS_HALF_M = 10;
+// 单向避让矩形：沿朝向 50m × 垂直 50m（覆盖单方向车道）
+const ALONG_HALF_M = 25;
+const ACROSS_HALF_M = 25;
+// 双向/无方向：60m × 60m 方形（覆盖左右两侧主路 + 辅路）
+const OMNI_HALF_M = 30;
+// 手动避让区三档尺寸（方形半边长，米）
+export const MANUAL_SIZE_HALF_M = {
+  small: 15,
+  medium: 30,
+  large: 50,
+} as const;
 const DEFAULT_SCAN_RADIUS_KM = 0.12;
 const SAMPLE_STEP_KM = 0.04;
 
@@ -36,10 +44,27 @@ function bearingVectors(bearingDeg: number, lat: number, alongM: number, acrossM
   };
 }
 
-// 默认无方向 → 退化为方形（小尺寸）
+// 默认无方向（双向） → 加大方形，覆盖左右两侧车道
 function defaultSquarePolygon(lng: number, lat: number): [number, number][] {
-  const dLat = metersToDegLat(ACROSS_HALF_M);
-  const dLng = metersToDegLng(ACROSS_HALF_M, lat);
+  const dLat = metersToDegLat(OMNI_HALF_M);
+  const dLng = metersToDegLng(OMNI_HALF_M, lat);
+  return [
+    [lng - dLng, lat - dLat],
+    [lng + dLng, lat - dLat],
+    [lng + dLng, lat + dLat],
+    [lng - dLng, lat + dLat],
+  ];
+}
+
+// 手动避让区：固定方形，按 size 缩放
+export function manualAreaToPolygon(
+  lng: number,
+  lat: number,
+  size: 'small' | 'medium' | 'large' = 'medium',
+): [number, number][] {
+  const halfM = MANUAL_SIZE_HALF_M[size];
+  const dLat = metersToDegLat(halfM);
+  const dLng = metersToDegLng(halfM, lat);
   return [
     [lng - dLng, lat - dLat],
     [lng + dLng, lat - dLat],

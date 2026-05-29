@@ -16,6 +16,7 @@ export interface SavedRoute {
   waypoints: Waypoint[];
   manualAvoidAreas: ManualAvoidArea[];
   ignoredRiskIds: string[];
+  forcedRiskIds?: string[];
 
   summary?: {
     distance: number;

@@ -11,6 +11,7 @@ import type {
   PlaceItem,
   Waypoint,
   ManualAvoidArea,
+  ManualAvoidSize,
   LngLat,
 } from '@/lib/types';
 import ControlPanel, { type InteractionMode, type RouteInfo } from './ControlPanel';
@@ -52,12 +53,20 @@ const MapContainer = () => {
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [manualAvoidAreas, setManualAvoidAreas] = useState<ManualAvoidArea[]>([]);
   const [ignoredRiskIds, setIgnoredRiskIds] = useState<Set<string>>(new Set());
+  const [forcedRiskIds, setForcedRiskIds] = useState<Set<string>>(new Set());
 
   const [mode, setMode] = useState<InteractionMode>('none');
   const modeRef = useRef<InteractionMode>(mode);
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  // 待添加的避让区尺寸（仅在 mode === 'add-avoid' 时有意义）
+  const [pendingAvoidSize, setPendingAvoidSize] = useState<ManualAvoidSize>('medium');
+  const pendingAvoidSizeRef = useRef<ManualAvoidSize>(pendingAvoidSize);
+  useEffect(() => {
+    pendingAvoidSizeRef.current = pendingAvoidSize;
+  }, [pendingAvoidSize]);
 
   // 历史 / 保存 UI 局部状态
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -68,8 +77,8 @@ const MapContainer = () => {
   const { routes, save, remove, rename, toggleFavorite } = useHistory();
 
   const plannerInput = useMemo(
-    () => ({ start, end, waypoints, ignoredRiskIds, manualAvoidAreas }),
-    [start, end, waypoints, ignoredRiskIds, manualAvoidAreas]
+    () => ({ start, end, waypoints, ignoredRiskIds, forcedRiskIds, manualAvoidAreas }),
+    [start, end, waypoints, ignoredRiskIds, forcedRiskIds, manualAvoidAreas]
   );
 
   const {
@@ -77,6 +86,7 @@ const MapContainer = () => {
     status,
     routeRisks,
     avoidedRisks,
+    safelyIgnoredRisks,
     logs,
     routeInfo,
     plan,
@@ -90,6 +100,7 @@ const MapContainer = () => {
       setWaypoints,
       setManualAvoidAreas,
       setIgnoredRiskIds,
+      setForcedRiskIds,
       plan,
     }),
     [plan],
@@ -196,10 +207,12 @@ const MapContainer = () => {
           { id: makeId('wp'), lng: point.lng, lat: point.lat, name },
         ]);
       } else if (currentMode === 'add-avoid') {
-        const label = `避让区 ${Date.now().toString().slice(-4)}`;
+        const size = pendingAvoidSizeRef.current;
+        const sizeLabel = size === 'small' ? '小' : size === 'large' ? '大' : '中';
+        const label = `避让区 ${sizeLabel}·${Date.now().toString().slice(-4)}`;
         setManualAvoidAreas((prev) => [
           ...prev,
-          { id: makeId('avoid'), lng: point.lng, lat: point.lat, label },
+          { id: makeId('avoid'), lng: point.lng, lat: point.lat, label, size },
         ]);
       }
       setMode('none');
@@ -235,8 +248,9 @@ const MapContainer = () => {
     setMode((m) => (m === 'add-waypoint' ? 'none' : 'add-waypoint'));
   }, []);
 
-  const handleToggleAddAvoid = useCallback(() => {
-    setMode((m) => (m === 'add-avoid' ? 'none' : 'add-avoid'));
+  const handleStartAddAvoid = useCallback((size: ManualAvoidSize) => {
+    setPendingAvoidSize(size);
+    setMode((m) => (m === 'add-avoid' && pendingAvoidSizeRef.current === size ? 'none' : 'add-avoid'));
   }, []);
 
   const handleToggleIgnoreRisk = useCallback((id: string) => {
@@ -244,6 +258,23 @@ const MapContainer = () => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+    // 取消"忽略"时不需要清 forced；切到忽略时也保留 forced 状态（不冲突）
+  }, []);
+
+  const handleToggleForceRisk = useCallback((id: string) => {
+    setForcedRiskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    // 强制避让 = 把它从 ignored 中移除（避免互相打架）
+    setIgnoredRiskIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
       return next;
     });
   }, []);
@@ -374,6 +405,7 @@ const MapContainer = () => {
           waypoints,
           manualAvoidAreas,
           ignoredRiskIds: Array.from(ignoredRiskIds),
+          forcedRiskIds: Array.from(forcedRiskIds),
           summary: routeInfo
             ? {
                 distance: routeInfo.distance,
@@ -391,7 +423,7 @@ const MapContainer = () => {
         }
       }
     },
-    [start, end, waypoints, manualAvoidAreas, ignoredRiskIds, routeInfo, avoidedRisks, save],
+    [start, end, waypoints, manualAvoidAreas, ignoredRiskIds, forcedRiskIds, routeInfo, avoidedRisks, save],
   );
 
   const handleUseRoute = useCallback(
@@ -410,6 +442,10 @@ const MapContainer = () => {
       : 'default';
 
   // —— 子节点 & layout 选择 ——
+  const useDesktop = layoutMode === 'desktop' || layoutMode === 'tablet-landscape';
+  const panelVariant: 'constrained' | 'flow' =
+    useDesktop || layoutMode === 'mobile-landscape' ? 'constrained' : 'flow';
+
   const controlPanelNode = (
     <ControlPanel
       start={start}
@@ -417,8 +453,10 @@ const MapContainer = () => {
       waypoints={waypoints}
       manualAvoidAreas={manualAvoidAreas}
       avoidedRisks={avoidedRisks}
+      safelyIgnoredRisks={safelyIgnoredRisks}
       routeRisks={routeRisks}
       ignoredRiskIds={ignoredRiskIds}
+      forcedRiskIds={forcedRiskIds}
       routeInfo={routeInfo as RouteInfo | null}
       planning={planning}
       status={status}
@@ -428,9 +466,11 @@ const MapContainer = () => {
       onRemoveWaypoint={handleRemoveWaypoint}
       onRemoveAvoidArea={handleRemoveAvoidArea}
       onToggleAddWaypoint={handleToggleAddWaypoint}
-      onToggleAddAvoid={handleToggleAddAvoid}
+      onStartAddAvoid={handleStartAddAvoid}
+      pendingAvoidSize={pendingAvoidSize}
       onPlan={handlePlan}
       onToggleIgnoreRisk={handleToggleIgnoreRisk}
+      onToggleForceRisk={handleToggleForceRisk}
       onFocusRisk={handleFocusRisk}
       onSwapEndpoints={handleSwapEndpoints}
       onClearStart={handleClearStart}
@@ -438,10 +478,11 @@ const MapContainer = () => {
       onOpenHistory={handleOpenHistory}
       onSaveRoute={handleOpenSave}
       canSave={canSave}
+      variant={panelVariant}
     />
   );
 
-  const debugPanelNode = <DebugPanel logs={logs} />;
+  const debugPanelNode = <DebugPanel logs={logs} variant={panelVariant} />;
 
   const mapElement = (
     <div
@@ -451,7 +492,6 @@ const MapContainer = () => {
     />
   );
 
-  const useDesktop = layoutMode === 'desktop' || layoutMode === 'tablet-landscape';
   const layoutContent = useDesktop ? (
     <DesktopLayout
       controlPanel={controlPanelNode}

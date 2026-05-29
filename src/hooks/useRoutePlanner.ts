@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { pointToAvoidPolygon, scanPathRisks } from '@/lib/avoidance';
+import { manualAreaToPolygon, pointToAvoidPolygon, scanPathRisks } from '@/lib/avoidance';
 import type {
   DebugLog,
   LngLat,
@@ -16,6 +16,7 @@ export interface RoutePlanInput {
   end: PlaceItem | null;
   waypoints: Waypoint[];
   ignoredRiskIds: Set<string>;
+  forcedRiskIds: Set<string>;
   manualAvoidAreas: ManualAvoidArea[];
 }
 
@@ -24,6 +25,7 @@ export interface RoutePlanState {
   status: string | null;
   routeRisks: RouteRisk[];
   avoidedRisks: RouteRisk[];
+  safelyIgnoredRisks: RouteRisk[];
   logs: DebugLog[];
   routeInfo: { distance: number; duration: number } | null;
 }
@@ -62,18 +64,21 @@ function collectPathPoints(route: any): PathPoint[] {
 function buildPolygonsFromRisks(
   risks: RouteRisk[],
   ignored: Set<string>,
+  forced: Set<string>,
   manual: ManualAvoidArea[],
 ): [number, number][][] {
   const polygons: [number, number][][] = [];
 
   for (const area of manual) {
-    polygons.push(pointToAvoidPolygon(area.lng, area.lat));
+    polygons.push(manualAreaToPolygon(area.lng, area.lat, area.size ?? 'medium'));
     if (polygons.length >= MAX_AVOID_POLYGONS) return polygons;
   }
 
   for (const r of risks) {
     if (ignored.has(r.id)) continue;
-    polygons.push(pointToAvoidPolygon(r.lng, r.lat, r.direction));
+    // 强制避让的点忽略方向（按双向处理），其余按方向矩形
+    const isForced = forced.has(r.id);
+    polygons.push(pointToAvoidPolygon(r.lng, r.lat, isForced ? undefined : r.direction));
     if (polygons.length >= MAX_AVOID_POLYGONS) break;
   }
 
@@ -93,6 +98,7 @@ export function useRoutePlanner(
   const [status, setStatus] = useState<string | null>(null);
   const [routeRisks, setRouteRisks] = useState<RouteRisk[]>([]);
   const [avoidedRisks, setAvoidedRisks] = useState<RouteRisk[]>([]);
+  const [safelyIgnoredRisks, setSafelyIgnoredRisks] = useState<RouteRisk[]>([]);
   const [logs, setLogs] = useState<DebugLog[]>([]);
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(
     null,
@@ -177,6 +183,7 @@ export function useRoutePlanner(
         const polygons = buildPolygonsFromRisks(
           Array.from(master.values()),
           current.ignoredRiskIds,
+          current.forcedRiskIds,
           current.manualAvoidAreas,
         );
 
@@ -194,12 +201,30 @@ export function useRoutePlanner(
 
         lastPath = points;
 
-        const roundRisks = scanPathRisks(points, 0.08, (r, car, target) => {
-          appendLog(
-            i + 1,
-            `[安全忽略] ${r.name} (行驶 ${car}° vs 监控 ${target ?? '?'}°)`,
-            'ignore',
-          );
+        const roundRisks = scanPathRisks(points, 0.08, (cam, car, target) => {
+          const id = `${cam.lng},${cam.lat}`;
+          if (current.forcedRiskIds.has(id)) {
+            // 用户强制避让 → 即便方向不冲突也加入 master
+            if (!master.has(id)) {
+              master.set(id, {
+                id,
+                lng: cam.lng,
+                lat: cam.lat,
+                name: cam.name,
+                type: cam.type,
+                risk: cam.risk,
+                href: cam.href,
+                direction: cam.direction,
+              });
+              appendLog(i + 1, `[强制避让] ${cam.name}`, 'success');
+            }
+          } else {
+            appendLog(
+              i + 1,
+              `[安全忽略] ${cam.name} (行驶 ${car}° vs 监控 ${target ?? '?'}°)`,
+              'ignore',
+            );
+          }
         });
 
         let foundNew = false;
@@ -226,6 +251,7 @@ export function useRoutePlanner(
       const finalPolygons = buildPolygonsFromRisks(
         masterList,
         current.ignoredRiskIds,
+        current.forcedRiskIds,
         current.manualAvoidAreas,
       );
 
@@ -265,12 +291,28 @@ export function useRoutePlanner(
             if (s === 'complete' && r?.routes?.[0]) {
               const route = r.routes[0];
               const finalPts = collectPathPoints(route);
-              const finalRiskMap = scanPathRisks(finalPts, 0.08);
+              const safelyIgnoredMap = new Map<string, RouteRisk>();
+              const finalRiskMap = scanPathRisks(finalPts, 0.08, (cam) => {
+                const id = `${cam.lng},${cam.lat}`;
+                if (current.forcedRiskIds.has(id)) return;
+                if (safelyIgnoredMap.has(id)) return;
+                safelyIgnoredMap.set(id, {
+                  id,
+                  lng: cam.lng,
+                  lat: cam.lat,
+                  name: cam.name,
+                  type: cam.type,
+                  risk: cam.risk,
+                  href: cam.href,
+                  direction: cam.direction,
+                });
+              });
               const finalRisks: RouteRisk[] = [];
               finalRiskMap.forEach((risk, key) => {
                 if (!current.ignoredRiskIds.has(key)) finalRisks.push(risk);
               });
               setRouteRisks(finalRisks);
+              setSafelyIgnoredRisks(Array.from(safelyIgnoredMap.values()));
               setRouteInfo({
                 distance: route.distance ?? 0,
                 duration: route.time ?? 0,
@@ -298,6 +340,7 @@ export function useRoutePlanner(
     status,
     routeRisks,
     avoidedRisks,
+    safelyIgnoredRisks,
     logs,
     routeInfo,
     plan,
