@@ -33,5 +33,5 @@ yarn-error.log*
 next-env.d.ts
 
 # project specific
-/data.json
+# data.json 是源数据需进库；refined-data.json 是 build 时由 preprocess 脚本生成的产物
 /src/lib/refined-data.json
