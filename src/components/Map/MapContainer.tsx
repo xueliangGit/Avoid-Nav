@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAMap } from '@/hooks/useAMap';
 import { useRoutePlanner } from '@/hooks/useRoutePlanner';
+import { useDeviceLayout } from '@/hooks/useDeviceLayout';
+import { useHistory } from '@/hooks/useHistory';
+import { useApplySavedRoute } from '@/hooks/useApplySavedRoute';
+import { StorageQuotaError, type SavedRoute } from '@/lib/storage';
 import type {
   PlaceItem,
   Waypoint,
@@ -11,8 +15,12 @@ import type {
 } from '@/lib/types';
 import ControlPanel, { type InteractionMode, type RouteInfo } from './ControlPanel';
 import DebugPanel from './DebugPanel';
+import DesktopLayout from '@/components/layouts/DesktopLayout';
+import MobileLayout from '@/components/layouts/MobileLayout';
+import MobileLandscapeLayout from '@/components/layouts/MobileLandscapeLayout';
+import HistoryDrawer from '@/components/History/HistoryDrawer';
+import SaveRouteDialog from '@/components/History/SaveRouteDialog';
 
-// 高德 AutoComplete 选择事件 payload 的最小契约
 interface AutoCompleteSelectEvent {
   poi?: {
     name?: string;
@@ -21,12 +29,10 @@ interface AutoCompleteSelectEvent {
   };
 }
 
-// 高德 Map click 事件最小契约
 interface AMapClickEvent {
   lnglat: { lng: number; lat: number };
 }
 
-// AMap.PlaceSearch 反查地址回调 payload 最小契约
 interface RegeocodeResult {
   regeocode?: {
     formattedAddress?: string;
@@ -41,24 +47,26 @@ const makeId = (prefix: string): string =>
 const MapContainer = () => {
   const { AMap, map, ready, userLocation, error } = useAMap(MAP_CONTAINER_ID);
 
-  // 起终点 & 输入状态
   const [start, setStart] = useState<PlaceItem | null>(null);
   const [end, setEnd] = useState<PlaceItem | null>(null);
-
-  // 途经点 / 手动避让区 / 忽略风险
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [manualAvoidAreas, setManualAvoidAreas] = useState<ManualAvoidArea[]>([]);
   const [ignoredRiskIds, setIgnoredRiskIds] = useState<Set<string>>(new Set());
 
-  // 当前地图点击模式
   const [mode, setMode] = useState<InteractionMode>('none');
-  // 最新 mode（避免闭包陷阱）
   const modeRef = useRef<InteractionMode>(mode);
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
 
-  // —— 路线规划 hook ——
+  // 历史 / 保存 UI 局部状态
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveError, setSaveError] = useState<string | undefined>(undefined);
+
+  const layoutMode = useDeviceLayout();
+  const { routes, save, remove, rename, toggleFavorite } = useHistory();
+
   const plannerInput = useMemo(
     () => ({ start, end, waypoints, ignoredRiskIds, manualAvoidAreas }),
     [start, end, waypoints, ignoredRiskIds, manualAvoidAreas]
@@ -74,6 +82,20 @@ const MapContainer = () => {
     plan,
   } = useRoutePlanner(AMap, map, plannerInput);
 
+  // 一键复用 hook
+  const applySetters = useMemo(
+    () => ({
+      setStart,
+      setEnd,
+      setWaypoints,
+      setManualAvoidAreas,
+      setIgnoredRiskIds,
+      plan,
+    }),
+    [plan],
+  );
+  const applyRoute = useApplySavedRoute(applySetters);
+
   // —— 绑定 AutoComplete（在 AMap & map 就绪后） ——
   const autoCompleteRefs = useRef<{ start: unknown; end: unknown }>({
     start: null,
@@ -82,7 +104,6 @@ const MapContainer = () => {
 
   useEffect(() => {
     if (!ready || !AMap || !map) return;
-    // 高德 AMap 对象通过 hook 注入，运行时类型由 @types/amap-js-api 提供
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const A = AMap as any;
 
@@ -148,7 +169,6 @@ const MapContainer = () => {
             }
           );
         } catch {
-          // PlaceSearch.searchNearBy 作为兜底
           placeSearch.searchNearBy?.(
             '',
             [lnglat.lng, lnglat.lat],
@@ -182,7 +202,6 @@ const MapContainer = () => {
           { id: makeId('avoid'), lng: point.lng, lat: point.lat, label },
         ]);
       }
-      // 单次点击后退出模式
       setMode('none');
     };
 
@@ -192,7 +211,6 @@ const MapContainer = () => {
     };
   }, [ready, AMap, map]);
 
-  // —— 自动用 userLocation 填充起点（仅在 start 仍为空时） ——
   useEffect(() => {
     if (userLocation && !start) {
       setStart({ lng: userLocation.lng, lat: userLocation.lat, name: '我的位置' });
@@ -238,8 +256,6 @@ const MapContainer = () => {
     let s = start;
     let e = end;
 
-    // 兜底：如果用户输入了文字但没从下拉中选择，
-    // 用 PlaceSearch 把文字解析成第一个匹配的 POI。
     const startInput = document.getElementById('start-input') as HTMLInputElement | null;
     const endInput = document.getElementById('end-input') as HTMLInputElement | null;
     const startText = startInput?.value?.trim() ?? '';
@@ -249,6 +265,7 @@ const MapContainer = () => {
       new Promise((resolve) => {
         try {
           const ps = new A.PlaceSearch({ city: '北京', pageSize: 1, extensions: 'base' });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ps.search(keyword, (status: string, result: any) => {
             const poi = result?.poiList?.pois?.[0];
             if (status === 'complete' && poi?.location) {
@@ -281,7 +298,6 @@ const MapContainer = () => {
       return;
     }
 
-    // 直接把最新的 s/e 传给 plan 作为 override，避免依赖 setState 后才同步的 inputRef
     void plan({ start: s, end: e });
   }, [AMap, start, end, plan]);
 
@@ -293,7 +309,6 @@ const MapContainer = () => {
     setEnd(start);
   }, [start, end]);
 
-  // 点击风险点 → 飞到地图位置 + 闪烁圆环
   const handleFocusRisk = useCallback(
     (risk: { lng: number; lat: number; name: string }) => {
       if (!AMap || !map) return;
@@ -335,7 +350,58 @@ const MapContainer = () => {
     [AMap, map],
   );
 
-  // 地图的鼠标样式根据 mode 改变（视觉提示）
+  // —— 历史 / 保存 回调 ——
+  const canSave = !!routeInfo && !planning;
+
+  const handleOpenHistory = useCallback(() => setHistoryOpen(true), []);
+  const handleCloseHistory = useCallback(() => setHistoryOpen(false), []);
+
+  const handleOpenSave = useCallback(() => {
+    setSaveError(undefined);
+    setSaveOpen(true);
+  }, []);
+  const handleCloseSave = useCallback(() => setSaveOpen(false), []);
+
+  const handleConfirmSave = useCallback(
+    (name: string, favorite: boolean) => {
+      if (!start || !end) return;
+      try {
+        save({
+          name,
+          favorite,
+          start,
+          end,
+          waypoints,
+          manualAvoidAreas,
+          ignoredRiskIds: Array.from(ignoredRiskIds),
+          summary: routeInfo
+            ? {
+                distance: routeInfo.distance,
+                duration: routeInfo.duration,
+                riskCount: avoidedRisks.filter((r) => !ignoredRiskIds.has(r.id)).length,
+              }
+            : undefined,
+        });
+        setSaveOpen(false);
+      } catch (e) {
+        if (e instanceof StorageQuotaError) {
+          setSaveError(e.message);
+        } else {
+          setSaveError('保存失败');
+        }
+      }
+    },
+    [start, end, waypoints, manualAvoidAreas, ignoredRiskIds, routeInfo, avoidedRisks, save],
+  );
+
+  const handleUseRoute = useCallback(
+    (route: SavedRoute) => {
+      void applyRoute(route);
+    },
+    [applyRoute],
+  );
+
+  // 地图鼠标样式
   const mapCursor =
     mode === 'add-waypoint'
       ? 'crosshair'
@@ -343,39 +409,77 @@ const MapContainer = () => {
       ? 'crosshair'
       : 'default';
 
+  // —— 子节点 & layout 选择 ——
+  const controlPanelNode = (
+    <ControlPanel
+      start={start}
+      end={end}
+      waypoints={waypoints}
+      manualAvoidAreas={manualAvoidAreas}
+      avoidedRisks={avoidedRisks}
+      routeRisks={routeRisks}
+      ignoredRiskIds={ignoredRiskIds}
+      routeInfo={routeInfo as RouteInfo | null}
+      planning={planning}
+      status={status}
+      hasUserLocation={!!userLocation}
+      mode={mode}
+      onUseMyLocation={handleUseMyLocation}
+      onRemoveWaypoint={handleRemoveWaypoint}
+      onRemoveAvoidArea={handleRemoveAvoidArea}
+      onToggleAddWaypoint={handleToggleAddWaypoint}
+      onToggleAddAvoid={handleToggleAddAvoid}
+      onPlan={handlePlan}
+      onToggleIgnoreRisk={handleToggleIgnoreRisk}
+      onFocusRisk={handleFocusRisk}
+      onSwapEndpoints={handleSwapEndpoints}
+      onClearStart={handleClearStart}
+      onClearEnd={handleClearEnd}
+      onOpenHistory={handleOpenHistory}
+      onSaveRoute={handleOpenSave}
+      canSave={canSave}
+    />
+  );
+
+  const debugPanelNode = <DebugPanel logs={logs} />;
+
+  const mapElement = (
+    <div
+      id={MAP_CONTAINER_ID}
+      className="absolute inset-0 w-full h-full"
+      style={{ cursor: mapCursor }}
+    />
+  );
+
+  const useDesktop = layoutMode === 'desktop' || layoutMode === 'tablet-landscape';
+  const layoutContent = useDesktop ? (
+    <DesktopLayout
+      controlPanel={controlPanelNode}
+      debugPanel={debugPanelNode}
+      mapElement={mapElement}
+    />
+  ) : layoutMode === 'mobile-landscape' ? (
+    <MobileLandscapeLayout
+      controlPanel={controlPanelNode}
+      debugPanel={debugPanelNode}
+      mapElement={mapElement}
+    />
+  ) : (
+    <MobileLayout
+      controlPanel={controlPanelNode}
+      debugPanel={debugPanelNode}
+      mapElement={mapElement}
+    />
+  );
+
+  const drawerVariant: 'side' | 'fullscreen' = useDesktop ? 'side' : 'fullscreen';
+  const dialogVariant: 'modal' | 'sheet' = useDesktop ? 'modal' : 'sheet';
+  const defaultSaveName = start && end ? `${start.name} → ${end.name}` : '我的路线';
+
   return (
-    <div className="relative w-full h-full flex flex-col bg-slate-900 overflow-hidden text-slate-200">
-      {/* 左侧控制面板 */}
-      <ControlPanel
-        start={start}
-        end={end}
-        waypoints={waypoints}
-        manualAvoidAreas={manualAvoidAreas}
-        avoidedRisks={avoidedRisks}
-        routeRisks={routeRisks}
-        ignoredRiskIds={ignoredRiskIds}
-        routeInfo={routeInfo as RouteInfo | null}
-        planning={planning}
-        status={status}
-        hasUserLocation={!!userLocation}
-        mode={mode}
-        onUseMyLocation={handleUseMyLocation}
-        onRemoveWaypoint={handleRemoveWaypoint}
-        onRemoveAvoidArea={handleRemoveAvoidArea}
-        onToggleAddWaypoint={handleToggleAddWaypoint}
-        onToggleAddAvoid={handleToggleAddAvoid}
-        onPlan={handlePlan}
-        onToggleIgnoreRisk={handleToggleIgnoreRisk}
-        onFocusRisk={handleFocusRisk}
-        onSwapEndpoints={handleSwapEndpoints}
-        onClearStart={handleClearStart}
-        onClearEnd={handleClearEnd}
-      />
+    <div className="relative w-full h-full bg-slate-900 overflow-hidden text-slate-200">
+      {layoutContent}
 
-      {/* 右侧日志面板 */}
-      <DebugPanel logs={logs} />
-
-      {/* 模式提示条 */}
       {mode !== 'none' && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1900] pointer-events-none">
           <div className="bg-amber-500/90 text-slate-900 text-xs font-black px-4 py-2 rounded-full shadow-2xl backdrop-blur">
@@ -384,7 +488,6 @@ const MapContainer = () => {
         </div>
       )}
 
-      {/* 错误提示 */}
       {error && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1900] pointer-events-none">
           <div className="bg-red-600/90 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-2xl">
@@ -393,11 +496,24 @@ const MapContainer = () => {
         </div>
       )}
 
-      {/* 地图容器 */}
-      <div
-        id={MAP_CONTAINER_ID}
-        className="flex-1 w-full h-full"
-        style={{ cursor: mapCursor }}
+      <HistoryDrawer
+        open={historyOpen}
+        variant={drawerVariant}
+        routes={routes}
+        onClose={handleCloseHistory}
+        onUse={handleUseRoute}
+        onToggleFavorite={toggleFavorite}
+        onRename={rename}
+        onRemove={remove}
+      />
+
+      <SaveRouteDialog
+        open={saveOpen}
+        variant={dialogVariant}
+        defaultName={defaultSaveName}
+        errorMessage={saveError}
+        onClose={handleCloseSave}
+        onConfirm={handleConfirmSave}
       />
 
       <style jsx global>{`
@@ -423,10 +539,10 @@ const MapContainer = () => {
           color: #60a5fa !important;
         }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 3px;
+          width: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.15);
           border-radius: 10px;
         }
       `}</style>
