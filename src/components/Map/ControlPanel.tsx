@@ -14,6 +14,8 @@ import {
   MapPin,
   Search,
   ArrowDownUp,
+  History,
+  Save,
 } from 'lucide-react';
 import type {
   PlaceItem,
@@ -68,6 +70,9 @@ interface ControlPanelProps {
   onSwapEndpoints: () => void;
   onClearStart: () => void;
   onClearEnd: () => void;
+  onOpenHistory: () => void;
+  onSaveRoute: () => void;
+  canSave: boolean;
 }
 
 const formatDistance = (meters: number): string => {
@@ -109,6 +114,9 @@ const ControlPanel = ({
   onSwapEndpoints,
   onClearStart,
   onClearEnd,
+  onOpenHistory,
+  onSaveRoute,
+  canSave,
 }: ControlPanelProps) => {
   const activeRiskIds = new Set(routeRisks.map((r) => r.id));
 
@@ -138,8 +146,7 @@ const ControlPanel = ({
   }, [end]);
 
   return (
-    <div className="absolute top-4 left-4 z-[2000] w-96 max-h-[calc(100vh-32px)] flex flex-col pointer-events-none">
-      <div className="bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-white/10 pointer-events-auto flex flex-col overflow-hidden">
+    <div className="bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-white/10 flex flex-col overflow-hidden h-full">
         {/* 标题栏 */}
         <div className="flex items-center justify-between mb-6 px-1">
           <div className="flex items-center space-x-3">
@@ -148,11 +155,22 @@ const ControlPanel = ({
             </div>
             <h2 className="font-black text-white text-lg">北京避让导航</h2>
           </div>
-          {status && (
-            <span className="text-[10px] bg-indigo-600 text-white px-2 py-1 rounded-lg animate-pulse font-bold tracking-widest">
-              {status}
-            </span>
-          )}
+          <div className="flex items-center space-x-2">
+            {status && (
+              <span className="text-[10px] bg-indigo-600 text-white px-2 py-1 rounded-lg animate-pulse font-bold tracking-widest">
+                {status}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={onOpenHistory}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition"
+              aria-label="历史路线"
+              title="历史路线"
+            >
+              <History className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* 起点 / 终点 */}
@@ -333,6 +351,16 @@ const ControlPanel = ({
           <span>{planning ? 'AI 深度避让中...' : '规划路线'}</span>
         </button>
 
+        <button
+          type="button"
+          onClick={onSaveRoute}
+          disabled={!canSave || planning}
+          className="mt-2 w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 py-2.5 rounded-2xl font-black text-xs transition flex items-center justify-center space-x-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <Save className="w-3.5 h-3.5" />
+          <span>保存此路线</span>
+        </button>
+
         {/* 路线信息 */}
         {routeInfo && !planning && (
           <div className="mt-5 grid grid-cols-2 gap-3">
@@ -423,7 +451,6 @@ const ControlPanel = ({
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 };
