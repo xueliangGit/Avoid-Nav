@@ -24,7 +24,7 @@ const DebugPanel = ({ logs }: DebugPanelProps) => {
   }, [logs]);
 
   return (
-    <div className="absolute top-4 right-4 z-[2000] w-80 h-[400px] bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-5 border border-white/10 pointer-events-auto flex flex-col overflow-hidden">
+    <div className="bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-5 border border-white/10 flex flex-col overflow-hidden h-full w-full">
       <div className="flex items-center space-x-2 mb-4 border-b border-white/5 pb-3">
         <Terminal className="text-emerald-500 w-4 h-4" />
         <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-emerald-500">
