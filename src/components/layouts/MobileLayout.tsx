@@ -19,8 +19,8 @@ export default function MobileLayout({ controlPanel, debugPanel, mapElement }: P
     <div className="relative w-full h-full">
       {mapElement}
       <BottomSheet height={height} onHeightChange={setHeight}>
-        <div className="flex flex-col h-full">
-          <div className="flex border-b border-white/5 px-4">
+        <div className="flex flex-col h-full min-h-0">
+          <div className="flex border-b border-white/5 px-4 shrink-0">
             <TabButton active={tab === 'control'} onClick={() => setTab('control')}>
               控制
             </TabButton>
@@ -28,7 +28,7 @@ export default function MobileLayout({ controlPanel, debugPanel, mapElement }: P
               日志
             </TabButton>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar overscroll-contain p-3 touch-pan-y">
             {tab === 'control' ? controlPanel : debugPanel}
           </div>
         </div>

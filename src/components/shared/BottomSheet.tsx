@@ -85,7 +85,7 @@ export default function BottomSheet({ height, onHeightChange, children }: Bottom
       >
         <div className="w-10 h-1.5 rounded-full bg-white/30" />
       </div>
-      <div className="flex-1 overflow-hidden">{children}</div>
+      <div className="flex-1 min-h-0 flex flex-col">{children}</div>
     </div>
   );
 }
