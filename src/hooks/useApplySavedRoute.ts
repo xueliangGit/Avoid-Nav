@@ -22,7 +22,7 @@ export interface ApplySetters {
     ignoredRiskIds?: Set<string>;
     forcedRiskIds?: Set<string>;
     manualAvoidAreas?: ManualAvoidArea[];
-  }) => Promise<void>;
+  }) => Promise<boolean | void>;
 }
 
 export function useApplySavedRoute(setters: ApplySetters) {

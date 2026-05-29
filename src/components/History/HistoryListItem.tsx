@@ -20,6 +20,29 @@ function fmtMin(s: number): string {
   return m >= 60 ? `${Math.floor(m / 60)}时${m % 60}分` : `${m}分`;
 }
 
+function fmtTime(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const isSameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (isSameDay) return `今天 ${hm}`;
+  const y = new Date(now);
+  y.setDate(now.getDate() - 1);
+  const isYesterday =
+    d.getFullYear() === y.getFullYear() &&
+    d.getMonth() === y.getMonth() &&
+    d.getDate() === y.getDate();
+  if (isYesterday) return `昨天 ${hm}`;
+  if (d.getFullYear() === now.getFullYear()) {
+    return `${d.getMonth() + 1}月${d.getDate()}日 ${hm}`;
+  }
+  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+}
+
 export default function HistoryListItem({
   route,
   onUse,
@@ -123,13 +146,16 @@ export default function HistoryListItem({
       </div>
 
       {(route.waypoints.length > 0 || route.summary) && (
-        <p className="text-[10px] text-slate-500 mb-2">
+        <p className="text-[10px] text-slate-500 mb-1">
           {route.waypoints.length > 0 && `途经 ${route.waypoints.length} 处`}
           {route.summary && route.waypoints.length > 0 && ' · '}
           {route.summary && `${fmtKm(route.summary.distance)} / ${fmtMin(route.summary.duration)}`}
           {route.summary && ` · ${route.summary.riskCount} 处眼`}
         </p>
       )}
+      <p className="text-[10px] text-slate-600 mb-2">
+        {fmtTime(route.updatedAt)}
+      </p>
 
       <button
         type="button"

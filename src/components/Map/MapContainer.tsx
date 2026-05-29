@@ -6,7 +6,12 @@ import { useRoutePlanner } from '@/hooks/useRoutePlanner';
 import { useDeviceLayout } from '@/hooks/useDeviceLayout';
 import { useHistory } from '@/hooks/useHistory';
 import { useApplySavedRoute } from '@/hooks/useApplySavedRoute';
+import { useShareLink } from '@/hooks/useShareLink';
 import { StorageQuotaError, type SavedRoute } from '@/lib/storage';
+import { extractKeyPoints } from '@/lib/utils/path-keypoints';
+import { buildAmapNavUri, detectPlatform } from '@/lib/navigation';
+import { buildShareUrl, encodeShare } from '@/lib/share';
+import Toast, { type ToastVariant } from '@/components/shared/Toast';
 import type {
   PlaceItem,
   Waypoint,
@@ -73,6 +78,15 @@ const MapContainer = () => {
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
 
+  // Toast 状态
+  const [toast, setToast] = useState<{ open: boolean; message: string; variant: ToastVariant }>(
+    { open: false, message: '', variant: 'success' }
+  );
+  const showToast = useCallback((message: string, variant: ToastVariant = 'success') => {
+    setToast({ open: true, message, variant });
+  }, []);
+  const closeToast = useCallback(() => setToast((t) => ({ ...t, open: false })), []);
+
   const layoutMode = useDeviceLayout();
   const { routes, save, remove, rename, toggleFavorite } = useHistory();
 
@@ -87,6 +101,7 @@ const MapContainer = () => {
     routeRisks,
     avoidedRisks,
     safelyIgnoredRisks,
+    routePath,
     logs,
     routeInfo,
     plan,
@@ -324,13 +339,13 @@ const MapContainer = () => {
     }
 
     if (!s || !e) {
-      // eslint-disable-next-line no-console
-      console.warn('[规划] 起点或终点未设置', { s, e });
+      showToast(!s && !e ? '请先设置起点和终点' : !s ? '请先设置起点' : '请先设置终点', 'error');
       return;
     }
 
-    void plan({ start: s, end: e });
-  }, [AMap, start, end, plan]);
+    const ok = await plan({ start: s, end: e });
+    if (!ok) showToast('规划失败，请检查起终点或稍后重试', 'error');
+  }, [AMap, start, end, plan, showToast]);
 
   const handleClearStart = useCallback(() => setStart(null), []);
   const handleClearEnd = useCallback(() => setEnd(null), []);
@@ -381,6 +396,103 @@ const MapContainer = () => {
     [AMap, map],
   );
 
+  // —— 分享路线 ——
+  const canShare = !!start && !!end;
+  const handleShareRoute = useCallback(async () => {
+    if (!start || !end) return;
+    const token = encodeShare({
+      s: start,
+      e: end,
+      w: waypoints,
+      m: manualAvoidAreas,
+      i: Array.from(ignoredRiskIds),
+      f: Array.from(forcedRiskIds),
+    });
+    const url = buildShareUrl(token);
+
+    // 优先 navigator.share（移动），失败 fallback 到剪贴板
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title: '北京避让导航 - 路线方案', url });
+        return;
+      }
+    } catch {
+      // 用户取消分享、或浏览器报错 → fallback
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('链接已复制，粘贴给好友即可');
+    } catch {
+      // 极端情况：剪贴板权限不可用，直接弹链接到 prompt
+      window.prompt('复制此链接分享：', url);
+    }
+  }, [start, end, waypoints, manualAvoidAreas, ignoredRiskIds, forcedRiskIds, showToast]);
+
+  // —— 接收分享链接：挂载时恢复状态，等地图就绪后再触发规划 ——
+  const pendingSharedPlanRef = useRef<null | (() => void)>(null);
+
+  useShareLink(
+    useCallback(
+      (state) => {
+        setStart(state.s);
+        setEnd(state.e);
+        setWaypoints(state.w);
+        setManualAvoidAreas(state.m);
+        setIgnoredRiskIds(new Set(state.i));
+        setForcedRiskIds(new Set(state.f));
+        // 暂存规划闭包，等 AMap/map ready 后执行
+        pendingSharedPlanRef.current = () => {
+          void plan({
+            start: state.s,
+            end: state.e,
+            waypoints: state.w,
+            manualAvoidAreas: state.m,
+            ignoredRiskIds: new Set(state.i),
+            forcedRiskIds: new Set(state.f),
+          });
+        };
+        showToast('已加载分享的路线，地图就绪后自动规划...');
+      },
+      [plan, showToast],
+    ),
+  );
+
+  // 地图就绪后，如果有待执行的分享规划，触发一次
+  useEffect(() => {
+    if (!ready || !AMap || !map) return;
+    const fn = pendingSharedPlanRef.current;
+    if (!fn) return;
+    pendingSharedPlanRef.current = null;
+    fn();
+  }, [ready, AMap, map]);
+
+  // —— 导航跳转 ——
+  const canNavigate = !!start && !!end && !planning && routePath.length > 1;
+
+  const handleStartNavigation = useCallback(() => {
+    if (!start || !end || routePath.length < 2) return;
+
+    // 用户手动避让区也作为途经点（紧跟在自动关键点前面，保证一定被尊重）
+    const manualPoints = manualAvoidAreas.map((a) => ({ lng: a.lng, lat: a.lat }));
+    // 自动关键点配额：16 - 手动避让区数量，至少留 4
+    const autoBudget = Math.max(4, 16 - manualPoints.length);
+    const autoPoints = extractKeyPoints(routePath, autoBudget);
+
+    // 顺序：手动避让区 + 自动关键点（合并后再次裁剪到 16）
+    const waypoints = [...manualPoints, ...autoPoints].slice(0, 16);
+
+    const uri = buildAmapNavUri({
+      start,
+      end,
+      waypoints,
+      platform: detectPlatform(),
+    });
+
+    // eslint-disable-next-line no-console
+    console.log('[导航] waypoints =', waypoints.length, '路径点 =', routePath.length, 'URI =', uri);
+    window.open(uri, '_blank');
+  }, [start, end, routePath, manualAvoidAreas]);
+
   // —— 历史 / 保存 回调 ——
   const canSave = !!routeInfo && !planning;
 
@@ -415,6 +527,7 @@ const MapContainer = () => {
             : undefined,
         });
         setSaveOpen(false);
+        showToast(`已保存：${name}`);
       } catch (e) {
         if (e instanceof StorageQuotaError) {
           setSaveError(e.message);
@@ -423,14 +536,25 @@ const MapContainer = () => {
         }
       }
     },
-    [start, end, waypoints, manualAvoidAreas, ignoredRiskIds, forcedRiskIds, routeInfo, avoidedRisks, save],
+    [start, end, waypoints, manualAvoidAreas, ignoredRiskIds, forcedRiskIds, routeInfo, avoidedRisks, save, showToast],
   );
 
   const handleUseRoute = useCallback(
     (route: SavedRoute) => {
       void applyRoute(route);
+      showToast(`已加载：${route.name}`);
     },
-    [applyRoute],
+    [applyRoute, showToast],
+  );
+
+  // 包一层删除：toast 提示
+  const handleRemoveHistory = useCallback(
+    (id: string) => {
+      const target = routes.find((r) => r.id === id);
+      remove(id);
+      showToast(target ? `已删除：${target.name}` : '已删除');
+    },
+    [remove, routes, showToast],
   );
 
   // 地图鼠标样式
@@ -478,6 +602,10 @@ const MapContainer = () => {
       onOpenHistory={handleOpenHistory}
       onSaveRoute={handleOpenSave}
       canSave={canSave}
+      onStartNavigation={handleStartNavigation}
+      canNavigate={canNavigate}
+      onShareRoute={handleShareRoute}
+      canShare={canShare}
       variant={panelVariant}
     />
   );
@@ -544,7 +672,7 @@ const MapContainer = () => {
         onUse={handleUseRoute}
         onToggleFavorite={toggleFavorite}
         onRename={rename}
-        onRemove={remove}
+        onRemove={handleRemoveHistory}
       />
 
       <SaveRouteDialog
@@ -554,6 +682,13 @@ const MapContainer = () => {
         errorMessage={saveError}
         onClose={handleCloseSave}
         onConfirm={handleConfirmSave}
+      />
+
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        variant={toast.variant}
+        onClose={closeToast}
       />
 
       <style jsx global>{`

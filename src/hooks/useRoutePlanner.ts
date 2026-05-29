@@ -26,12 +26,14 @@ export interface RoutePlanState {
   routeRisks: RouteRisk[];
   avoidedRisks: RouteRisk[];
   safelyIgnoredRisks: RouteRisk[];
+  routePath: LngLat[];
   logs: DebugLog[];
   routeInfo: { distance: number; duration: number } | null;
 }
 
 export interface UseRoutePlannerResult extends RoutePlanState {
-  plan: (override?: Partial<RoutePlanInput>) => Promise<void>;
+  /** 返回是否最终生成了可用路线 */
+  plan: (override?: Partial<RoutePlanInput>) => Promise<boolean>;
   clearLogs: () => void;
 }
 
@@ -99,6 +101,7 @@ export function useRoutePlanner(
   const [routeRisks, setRouteRisks] = useState<RouteRisk[]>([]);
   const [avoidedRisks, setAvoidedRisks] = useState<RouteRisk[]>([]);
   const [safelyIgnoredRisks, setSafelyIgnoredRisks] = useState<RouteRisk[]>([]);
+  const [routePath, setRoutePath] = useState<LngLat[]>([]);
   const [logs, setLogs] = useState<DebugLog[]>([]);
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(
     null,
@@ -159,9 +162,9 @@ export function useRoutePlanner(
     [AMap],
   );
 
-  const plan = useCallback(async (override?: Partial<RoutePlanInput>) => {
+  const plan = useCallback(async (override?: Partial<RoutePlanInput>): Promise<boolean> => {
     const current = { ...inputRef.current, ...(override ?? {}) } as RoutePlanInput;
-    if (!AMap || !map || !current.start || !current.end) return;
+    if (!AMap || !map || !current.start || !current.end) return false;
 
     setPlanning(true);
     setStatus('Round 1');
@@ -172,6 +175,7 @@ export function useRoutePlanner(
 
     const master = new Map<string, RouteRisk>();
     let lastPath: PathPoint[] = [];
+    let success = false;
 
     try {
       for (let i = 0; i < MAX_ROUNDS; i++) {
@@ -313,6 +317,7 @@ export function useRoutePlanner(
               });
               setRouteRisks(finalRisks);
               setSafelyIgnoredRisks(Array.from(safelyIgnoredMap.values()));
+              setRoutePath(finalPts);
               setRouteInfo({
                 distance: route.distance ?? 0,
                 duration: route.time ?? 0,
@@ -322,6 +327,7 @@ export function useRoutePlanner(
                 `路线完成：${(route.distance / 1000).toFixed(1)}km / ${Math.round(route.time / 60)}分钟`,
                 'info',
               );
+              success = true;
             } else {
               appendLog(MAX_ROUNDS + 1, '最终路线渲染失败', 'error');
             }
@@ -333,6 +339,7 @@ export function useRoutePlanner(
       setStatus(null);
       setPlanning(false);
     }
+    return success;
   }, [AMap, map, appendLog, clearOverlays, probeRoute]);
 
   return {
@@ -341,6 +348,7 @@ export function useRoutePlanner(
     routeRisks,
     avoidedRisks,
     safelyIgnoredRisks,
+    routePath,
     logs,
     routeInfo,
     plan,

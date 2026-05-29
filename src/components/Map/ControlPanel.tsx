@@ -19,6 +19,7 @@ import {
   ShieldOff,
   ChevronDown,
   ChevronRight,
+  Share2,
 } from 'lucide-react';
 import type {
   PlaceItem,
@@ -81,6 +82,10 @@ interface ControlPanelProps {
   onOpenHistory: () => void;
   onSaveRoute: () => void;
   canSave: boolean;
+  onStartNavigation: () => void;
+  canNavigate: boolean;
+  onShareRoute: () => void;
+  canShare: boolean;
 
   // 布局模式：constrained = 桌面端固定高度容器（内部滚动）；flow = 手机端自然流式（外层滚动）
   variant?: 'constrained' | 'flow';
@@ -132,10 +137,16 @@ const ControlPanel = ({
   onOpenHistory,
   onSaveRoute,
   canSave,
+  onStartNavigation,
+  canNavigate,
+  onShareRoute,
+  canShare,
   variant = 'constrained',
 }: ControlPanelProps) => {
   const activeRiskIds = new Set(routeRisks.map((r) => r.id));
   const [safelyExpanded, setSafelyExpanded] = useState(false);
+  const [hitExpanded, setHitExpanded] = useState(true);
+  const [otherExpanded, setOtherExpanded] = useState(false);
 
   // input 保持非受控（让 AMap.AutoComplete 接管），仅当外部 start/end 变化时
   // 主动同步到 DOM 的 value，避免 React 因 key 变化销毁 input 导致 AutoComplete 失效。
@@ -165,7 +176,7 @@ const ControlPanel = ({
   const isFlow = variant === 'flow';
   const rootClass = isFlow
     ? 'bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-white/10 flex flex-col'
-    : 'bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-white/10 flex flex-col overflow-hidden h-full';
+    : 'bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-white/10 flex flex-col max-h-full overflow-y-auto custom-scrollbar';
 
   return (
     <div className={rootClass}>
@@ -425,75 +436,166 @@ const ControlPanel = ({
           </div>
         )}
 
-        {/* 已纳入避让的风险点 */}
-        {avoidedRisks.length > 0 && (
-          <div className={`mt-6 flex flex-col border-t border-white/5 pt-5 ${isFlow ? '' : 'flex-1 overflow-hidden'}`}>
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center space-x-2">
-              <ShieldAlert className="w-4 h-4 text-red-500" />
-              <span>路线电子眼 ({avoidedRisks.length})</span>
-            </h3>
-            <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
-              规划路线沿途的电子眼。<span className="text-red-400 font-bold">红色</span>
-              =当前路线仍命中；<span className="text-emerald-400 font-bold">绿色</span>
-              =已成功绕开；<span className="text-slate-400">灰色</span>=已取消避让。点击行可定位到地图。
-            </p>
-            <div className={`space-y-2 pr-1 custom-scrollbar text-[11px] ${isFlow ? '' : 'flex-1 overflow-y-auto'}`}>
-              {avoidedRisks.map((r) => {
-                const isIgnored = ignoredRiskIds.has(r.id);
-                const isHit = activeRiskIds.has(r.id);
-                const rowClass = isIgnored
-                  ? 'bg-slate-900 border-white/5 opacity-60'
-                  : isHit
-                  ? 'bg-red-500/10 border-red-500/30'
-                  : 'bg-emerald-500/10 border-emerald-500/30';
-                const nameClass = isIgnored
-                  ? 'text-slate-500 line-through'
-                  : isHit
-                  ? 'text-red-400'
-                  : 'text-emerald-400';
-                return (
-                  <div
-                    key={r.id}
-                    onClick={() => onFocusRisk(r)}
-                    className={`p-3 rounded-2xl border transition-all flex items-center justify-between cursor-pointer hover:brightness-125 ${rowClass}`}
-                  >
-                    <div className="flex items-center space-x-3 overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`/images/${r.type}.png`}
-                        alt=""
-                        className="w-4 h-5 object-contain shrink-0"
-                      />
-                      <span className={`font-bold truncate pr-2 ${nameClass}`}>
-                        {r.name}
-                      </span>
-                    </div>
+        {/* 开始导航 + 分享（路线规划完成后显示） */}
+        {routeInfo && !planning && (
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={onStartNavigation}
+              disabled={!canNavigate}
+              className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-2xl font-black text-sm shadow-xl shadow-emerald-900/40 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed disabled:shadow-none transition flex items-center justify-center space-x-2"
+            >
+              <Navigation className="w-4 h-4 fill-current" />
+              <span>开始导航</span>
+            </button>
+            <button
+              type="button"
+              onClick={onShareRoute}
+              disabled={!canShare}
+              className="shrink-0 px-4 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 rounded-2xl font-black text-sm border border-blue-500/30 hover:border-blue-500/50 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center"
+              aria-label="分享路线方案"
+              title="分享路线方案（含避让设置）"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* 已纳入避让的风险点（分两组：仍命中 / 其他） */}
+        {avoidedRisks.length > 0 && (() => {
+          const hitRisks: typeof avoidedRisks = [];
+          const otherRisks: typeof avoidedRisks = [];
+          for (const r of avoidedRisks) {
+            if (activeRiskIds.has(r.id) && !ignoredRiskIds.has(r.id)) {
+              hitRisks.push(r);
+            } else {
+              otherRisks.push(r);
+            }
+          }
+
+          const renderRow = (r: typeof avoidedRisks[number]) => {
+            const isIgnored = ignoredRiskIds.has(r.id);
+            const isHit = activeRiskIds.has(r.id);
+            const isForced = forcedRiskIds.has(r.id);
+            const rowClass = isIgnored
+              ? 'bg-slate-900 border-white/5 opacity-60'
+              : isHit
+              ? 'bg-red-500/10 border-red-500/30'
+              : 'bg-emerald-500/10 border-emerald-500/30';
+            const nameClass = isIgnored
+              ? 'text-slate-500 line-through'
+              : isHit
+              ? 'text-red-400'
+              : 'text-emerald-400';
+            return (
+              <div
+                key={r.id}
+                onClick={() => onFocusRisk(r)}
+                className={`p-3 rounded-2xl border transition-all flex items-center justify-between cursor-pointer hover:brightness-125 ${rowClass}`}
+              >
+                <div className="flex items-center space-x-3 overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/images/${r.type}.png`}
+                    alt=""
+                    className="w-4 h-5 object-contain shrink-0"
+                  />
+                  <span className={`font-bold truncate pr-2 ${nameClass}`}>
+                    {r.name}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-1.5 shrink-0">
+                  {isHit && !isIgnored && (
                     <button
                       type="button"
                       onClick={(ev) => {
                         ev.stopPropagation();
-                        onToggleIgnoreRisk(r.id);
+                        onToggleForceRisk(r.id);
                       }}
-                      className={`shrink-0 cursor-pointer p-2 rounded-xl transition-all ${
-                        isIgnored
-                          ? 'bg-slate-800 text-slate-600 hover:text-slate-300'
-                          : 'bg-white/5 text-blue-400 hover:bg-blue-600 hover:text-white'
+                      className={`cursor-pointer p-2 rounded-xl transition-all ${
+                        isForced
+                          ? 'bg-amber-500 text-white hover:bg-amber-600'
+                          : 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/30'
                       }`}
-                      aria-label={isIgnored ? '恢复避让' : '取消避让此点'}
-                      title={isIgnored ? '恢复避让' : '取消避让'}
+                      aria-label={isForced ? '取消强化避让' : '强化避让（扩大区域）'}
+                      title={isForced ? '已强化避让，点击取消' : '强化避让（按 60m 双向矩形）'}
                     >
-                      {isIgnored ? (
-                        <EyeOff className="w-3.5 h-3.5" />
-                      ) : (
-                        <Eye className="w-3.5 h-3.5" />
-                      )}
+                      <ShieldAlert className="w-3.5 h-3.5" />
                     </button>
-                  </div>
-                );
-              })}
+                  )}
+                  <button
+                    type="button"
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      onToggleIgnoreRisk(r.id);
+                    }}
+                    className={`cursor-pointer p-2 rounded-xl transition-all ${
+                      isIgnored
+                        ? 'bg-slate-800 text-slate-600 hover:text-slate-300'
+                        : 'bg-white/5 text-blue-400 hover:bg-blue-600 hover:text-white'
+                    }`}
+                    aria-label={isIgnored ? '恢复避让' : '取消避让此点'}
+                    title={isIgnored ? '恢复避让' : '取消避让'}
+                  >
+                    {isIgnored ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+            );
+          };
+
+          return (
+            <div className="mt-6 flex flex-col border-t border-white/5 pt-5 space-y-3">
+              {/* 仍命中（红） */}
+              {hitRisks.length > 0 && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setHitExpanded((v) => !v)}
+                    className="w-full flex items-center justify-between mb-2 px-1 group"
+                  >
+                    <h3 className="text-[10px] font-black text-red-400 uppercase tracking-widest flex items-center space-x-2 group-hover:text-red-300 transition">
+                      <ShieldAlert className="w-3 h-3" />
+                      <span>仍命中 ({hitRisks.length})</span>
+                    </h3>
+                    {hitExpanded ? (
+                      <ChevronDown className="w-3 h-3 text-red-400" />
+                    ) : (
+                      <ChevronRight className="w-3 h-3 text-red-400" />
+                    )}
+                  </button>
+                  {hitExpanded && (
+                    <div className="space-y-2 pr-1 text-[11px]">{hitRisks.map(renderRow)}</div>
+                  )}
+                </div>
+              )}
+
+              {/* 已绕开 / 已取消（绿色 + 灰色） */}
+              {otherRisks.length > 0 && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setOtherExpanded((v) => !v)}
+                    className="w-full flex items-center justify-between mb-2 px-1 group"
+                  >
+                    <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center space-x-2 group-hover:text-emerald-300 transition">
+                      <Eye className="w-3 h-3" />
+                      <span>已绕开 / 已取消 ({otherRisks.length})</span>
+                    </h3>
+                    {otherExpanded ? (
+                      <ChevronDown className="w-3 h-3 text-emerald-400" />
+                    ) : (
+                      <ChevronRight className="w-3 h-3 text-emerald-400" />
+                    )}
+                  </button>
+                  {otherExpanded && (
+                    <div className="space-y-2 pr-1 text-[11px]">{otherRisks.map(renderRow)}</div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 安全忽略（方向不冲突，默认未避让） */}
         {safelyIgnoredRisks.length > 0 && (
