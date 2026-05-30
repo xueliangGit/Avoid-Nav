@@ -472,25 +472,37 @@ const MapContainer = () => {
   const handleStartNavigation = useCallback(() => {
     if (!start || !end || routePath.length < 2) return;
 
-    // 用户手动避让区也作为途经点（紧跟在自动关键点前面，保证一定被尊重）
-    const manualPoints = manualAvoidAreas.map((a) => ({ lng: a.lng, lat: a.lat }));
-    // 自动关键点配额：16 - 手动避让区数量，至少留 4
-    const autoBudget = Math.max(4, 16 - manualPoints.length);
-    const autoPoints = extractKeyPoints(routePath, autoBudget);
+    const platform = detectPlatform();
 
-    // 顺序：手动避让区 + 自动关键点（合并后再次裁剪到 16）
-    const waypoints = [...manualPoints, ...autoPoints].slice(0, 16);
+    // 用户手动避让区作为带名字的途经点
+    const manualPoints = manualAvoidAreas.map((a) => ({ lng: a.lng, lat: a.lat, name: a.label || '避让区' }));
+    // 自动关键点配额：14 - 手动避让区数量，至少留 2
+    const autoBudget = Math.max(2, 14 - manualPoints.length);
+    const autoPoints = extractKeyPoints(routePath, autoBudget).map((p, i) => ({
+      lng: p.lng,
+      lat: p.lat,
+      name: `关键点${i + 1}`,
+    }));
+
+    // 顺序：手动避让区在前 + 自动关键点
+    const waypoints = [...manualPoints, ...autoPoints];
 
     const uri = buildAmapNavUri({
       start,
       end,
       waypoints,
-      platform: detectPlatform(),
+      platform,
     });
 
     // eslint-disable-next-line no-console
-    console.log('[导航] waypoints =', waypoints.length, '路径点 =', routePath.length, 'URI =', uri);
-    window.open(uri, '_blank');
+    console.log('[导航]', platform, '途经点 =', waypoints.length, 'URI =', uri);
+
+    if (platform === 'web') {
+      window.open(uri, '_blank');
+    } else {
+      // 手机端：deep link 唤起 App。同步打开会被部分浏览器拦截（如微信内置），用 location.href 更可靠
+      window.location.href = uri;
+    }
   }, [start, end, routePath, manualAvoidAreas]);
 
   // —— 历史 / 保存 回调 ——
