@@ -474,28 +474,24 @@ const MapContainer = () => {
 
     const platform = detectPlatform();
 
-    // 用户手动避让区作为带名字的途经点
-    const manualPoints = manualAvoidAreas.map((a) => ({ lng: a.lng, lat: a.lat, name: a.label || '避让区' }));
-    // 自动关键点配额：14 - 手动避让区数量，至少留 2
-    const autoBudget = Math.max(2, 14 - manualPoints.length);
-    const autoPoints = extractKeyPoints(routePath, autoBudget).map((p, i) => ({
+    // 途经点 = 避让后路径上的 RDP 关键点。
+    // 注意：手动避让区不能当途经点（语义反了——途经点是"必须经过"，避让区是"必须绕开"）。
+    // routePath 本身已经绕开了手动避让区（规划阶段处理），从它上面抽关键点就够了。
+    const autoPoints = extractKeyPoints(routePath, 14).map((p, i) => ({
       lng: p.lng,
       lat: p.lat,
       name: `关键点${i + 1}`,
     }));
 
-    // 顺序：手动避让区在前 + 自动关键点
-    const waypoints = [...manualPoints, ...autoPoints];
-
     const uri = buildAmapNavUri({
       start,
       end,
-      waypoints,
+      waypoints: autoPoints,
       platform,
     });
 
     // eslint-disable-next-line no-console
-    console.log('[导航]', platform, '途经点 =', waypoints.length, 'URI =', uri);
+    console.log('[导航]', platform, '途经点 =', autoPoints.length, 'URI =', uri);
 
     if (platform === 'web') {
       window.open(uri, '_blank');
@@ -503,7 +499,7 @@ const MapContainer = () => {
       // 手机端：deep link 唤起 App。同步打开会被部分浏览器拦截（如微信内置），用 location.href 更可靠
       window.location.href = uri;
     }
-  }, [start, end, routePath, manualAvoidAreas]);
+  }, [start, end, routePath]);
 
   // —— 历史 / 保存 回调 ——
   const canSave = !!routeInfo && !planning;
