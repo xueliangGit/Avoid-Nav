@@ -10,6 +10,15 @@ export function detectPlatform(): NavPlatform {
   return 'web';
 }
 
+/**
+ * 检测是否在微信内置浏览器中
+ */
+export function isWechat(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent.toLowerCase();
+  return /micromessenger/i.test(ua);
+}
+
 interface NamedPoint {
   lng: number;
   lat: number;
