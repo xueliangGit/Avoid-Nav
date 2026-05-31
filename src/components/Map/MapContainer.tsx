@@ -9,9 +9,10 @@ import { useApplySavedRoute } from '@/hooks/useApplySavedRoute';
 import { useShareLink } from '@/hooks/useShareLink';
 import { StorageQuotaError, type SavedRoute } from '@/lib/storage';
 import { extractKeyPoints } from '@/lib/utils/path-keypoints';
-import { buildAmapNavUri, detectPlatform } from '@/lib/navigation';
+import { buildAmapNavUri, detectPlatform, isWechat } from '@/lib/navigation';
 import { buildShareUrl, encodeShare } from '@/lib/share';
 import Toast, { type ToastVariant } from '@/components/shared/Toast';
+import WechatGuide from '@/components/shared/WechatGuide';
 import type {
   PlaceItem,
   Waypoint,
@@ -86,6 +87,9 @@ const MapContainer = () => {
     setToast({ open: true, message, variant });
   }, []);
   const closeToast = useCallback(() => setToast((t) => ({ ...t, open: false })), []);
+
+  // 微信引导遮罩状态
+  const [wechatGuideOpen, setWechatGuideOpen] = useState(false);
 
   const layoutMode = useDeviceLayout();
   const { routes, save, remove, rename, toggleFavorite } = useHistory();
@@ -472,6 +476,12 @@ const MapContainer = () => {
   const handleStartNavigation = useCallback(() => {
     if (!start || !end || routePath.length < 2) return;
 
+    // 检测微信环境
+    if (isWechat()) {
+      setWechatGuideOpen(true);
+      return;
+    }
+
     const platform = detectPlatform();
 
     // 途经点 = 避让后路径上的 RDP 关键点。
@@ -698,6 +708,8 @@ const MapContainer = () => {
         variant={toast.variant}
         onClose={closeToast}
       />
+
+      <WechatGuide open={wechatGuideOpen} onClose={() => setWechatGuideOpen(false)} />
 
       <style jsx global>{`
         .amap-sug-result {
