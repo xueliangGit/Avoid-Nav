@@ -344,13 +344,25 @@ const MapContainer = () => {
         }
       });
 
-    if (!s && startText) {
-      s = await lookup(startText);
-      if (s) setStart(s);
+    // 输入框是非受控的，AutoComplete 的 select 在手机端有时不触发，
+    // 导致 start/end 仍是旧值（常见为自动填入的“我的位置”），输入的新地址被忽略。
+    // 因此以输入框文本为准：只要文本与当前起终点名称不一致，就按文本重新检索。
+    const startChanged = startText !== (s?.name ?? '');
+    const endChanged = endText !== (e?.name ?? '');
+
+    if (startChanged && startText) {
+      const found = await lookup(startText);
+      if (found) {
+        s = found;
+        setStart(found);
+      }
     }
-    if (!e && endText) {
-      e = await lookup(endText);
-      if (e) setEnd(e);
+    if (endChanged && endText) {
+      const found = await lookup(endText);
+      if (found) {
+        e = found;
+        setEnd(found);
+      }
     }
 
     if (!s || !e) {
