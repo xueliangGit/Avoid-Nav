@@ -41,6 +41,14 @@
 ### 待确认的语义
 - [ ] `aa='1'`(304 条) 的真实含义仍未知（当前按"其他监控/risk2/避让"处理）
 
+### 功能：明暗主题切换（已排期，未开始）
+当前 UI 是写死的深色（硬编码 `bg-slate-*` 等，无 `dark:` 类、无 theme context），地图底图固定为浅色 `amap://styles/normal`（深色面板 + 浅色地图混搭）。
+- [ ] 引入主题状态（浅色/深色/跟随系统 `prefers-color-scheme`），存入设置 + localStorage 持久化
+- [ ] 全量给组件加 `dark:` 变体（或改用 CSS 变量色板），统一配色
+- [ ] 地图样式随主题联动（深色用 `amap://styles/dark`）
+- [ ] 设置面板 `SettingsDrawer` 增加主题切换入口
+- [ ] Tailwind 配置 `darkMode` 策略（class 或 media）
+
 ---
 
 ## 三、`feature/refactor` worktree 遗留改动（未提交）
