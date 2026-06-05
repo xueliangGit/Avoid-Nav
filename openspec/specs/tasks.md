@@ -34,5 +34,5 @@
 - [ ] Webhook 自动推送更新数据 —— 尚未实现
 
 ## 遗留 / 待评审
-- [ ] `feature/refactor` worktree 两处未提交改动（分享链接去重保留 URL 参数、微信引导文案）待评审合并
+- [x] `feature/refactor` worktree 两处改动（分享链接去重保留 URL 参数、微信引导文案）已合并入 main（`6969b17`）
 - [ ] `aa='1'` 类型真实含义待确认

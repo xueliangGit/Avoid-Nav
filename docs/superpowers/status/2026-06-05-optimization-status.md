@@ -51,18 +51,17 @@
 
 ---
 
-## 三、`feature/refactor` worktree 遗留改动（未提交）
+## 三、`feature/refactor` worktree 遗留改动（✅ 已合并入 main `6969b17`）
 
-> 位置：`.worktrees/refactor-main`，分支 `feature/refactor`（该分支主体已合入 main，但以下 2 处改动**未提交、未合并**）。
+> 原位于 `.worktrees/refactor-main`（分支 `feature/refactor`）的 2 处未提交改动，已于 2026-06-05 cherry-pick 合并到 main。
 
 | 文件 | 改动内容 | 状态 |
 |------|----------|------|
-| `src/hooks/useShareLink.ts` | **分享链接不再清除 URL 参数**：改用 `sessionStorage` 按 token 去重，避免刷新重复加载。原因——微信"在浏览器中打开"会复制当前 URL，清掉参数会丢失路线 | 未提交，待评审/合并 |
-| `src/components/shared/WechatGuide.tsx` | 微信引导文案优化："然后再点击导航按钮" → "路线会自动带过去，再点导航即可" | 未提交，待提交 |
+| `src/hooks/useShareLink.ts` | **分享链接不再清除 URL 参数**：改用 `sessionStorage` 按 token 去重，避免刷新重复加载。原因——微信"在浏览器中打开"会复制当前 URL，清掉参数会丢失路线 | ✅ 已合并 |
+| `src/components/shared/WechatGuide.tsx` | 微信引导文案优化："然后再点击导航按钮" → "路线会自动带过去，再点导航即可" | ✅ 已合并 |
 
-**待办：**
-- [ ] 评审这两处改动是否要并入主线
-- [ ] 决定后：在 worktree 提交并合并，或 cherry-pick 到 main，然后清理 worktree
+**后续：**
+- [ ] worktree `.worktrees/refactor-main` 已无独有改动，可清理（`feature/refactor` 分支主体早已合入 main）
 
 ---
 
