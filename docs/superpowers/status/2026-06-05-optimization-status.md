@@ -14,7 +14,7 @@
 **下一步最该做的**：
 1. 🔴 **新 API 源接入收尾** — 等用户给接口地址，然后填 `fetch-api.js` + 校准 `CameraType` 枚举（见 §二）
 2. 🔵 **明暗主题切换** — 已排期未开始（见 §二 末）
-3. ⚙️ worktree `.worktrees/refactor-main` 已无独有改动，可清理
+3. ✅ worktree `.worktrees/refactor-main` 已清理（含 `feature/refactor` 分支）
 
 **关键文件**：`useAMap.ts`(渲染/六环显示)、`avoidance.ts`(聚类/扫描/尺寸)、`useRoutePlanner.ts`(规划/deadRisks)、`SettingsDrawer.tsx`(设置)、`scripts/{fetch-jinjing,fetch-api,preprocess}.js`(数据)。
 
@@ -76,7 +76,7 @@
 | `src/components/shared/WechatGuide.tsx` | 微信引导文案优化："然后再点击导航按钮" → "路线会自动带过去，再点导航即可" | ✅ 已合并 |
 
 **后续：**
-- [ ] worktree `.worktrees/refactor-main` 已无独有改动，可清理（`feature/refactor` 分支主体早已合入 main）
+- [x] worktree `.worktrees/refactor-main` 已清理（`feature/refactor` 分支已 `git branch -D`，主体早已合入 main）
 
 ---
 
