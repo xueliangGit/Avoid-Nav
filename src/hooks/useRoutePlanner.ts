@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { manualAreaToPolygon, pointToAvoidPolygon, scanPathRisks } from '@/lib/avoidance';
+import { buildRiskPolygons, manualAreaToPolygon, scanPathRisks } from '@/lib/avoidance';
+import type { AvoidSize } from '@/lib/avoidance';
 import type {
   DebugLog,
   LngLat,
@@ -18,6 +19,12 @@ export interface RoutePlanInput {
   ignoredRiskIds: Set<string>;
   forcedRiskIds: Set<string>;
   manualAvoidAreas: ManualAvoidArea[];
+  /** 自动风险点避让矩形尺寸，默认 medium */
+  riskAvoidSize: AvoidSize;
+  /** 六环内外筛选：仅避让六环内/外/全部 */
+  ringFilter: import('@/lib/types').RingFilter;
+  /** 失效点(aa=4)是否也自动避让，默认 false */
+  avoidDeadPoints: boolean;
 }
 
 export interface RoutePlanState {
@@ -26,6 +33,8 @@ export interface RoutePlanState {
   routeRisks: RouteRisk[];
   avoidedRisks: RouteRisk[];
   safelyIgnoredRisks: RouteRisk[];
+  /** 路线上的失效点(默认不避让)，供用户手动选择是否避让 */
+  deadRisks: RouteRisk[];
   routePath: LngLat[];
   logs: DebugLog[];
   routeInfo: { distance: number; duration: number } | null;
@@ -37,7 +46,8 @@ export interface UseRoutePlannerResult extends RoutePlanState {
   clearLogs: () => void;
 }
 
-const MAX_ROUNDS = 5;
+// 聚类合并后多边形数量大幅下降，可放开探测轮次以覆盖更全
+const MAX_ROUNDS = 8;
 const MAX_AVOID_POLYGONS = 40;
 const ROUND_DELAY_MS = 1200;
 
@@ -68,6 +78,7 @@ function buildPolygonsFromRisks(
   ignored: Set<string>,
   forced: Set<string>,
   manual: ManualAvoidArea[],
+  size: AvoidSize,
 ): [number, number][][] {
   const polygons: [number, number][][] = [];
 
@@ -76,11 +87,11 @@ function buildPolygonsFromRisks(
     if (polygons.length >= MAX_AVOID_POLYGONS) return polygons;
   }
 
-  for (const r of risks) {
-    if (ignored.has(r.id)) continue;
-    // 强制避让的点忽略方向（按双向处理），其余按方向矩形
-    const isForced = forced.has(r.id);
-    polygons.push(pointToAvoidPolygon(r.lng, r.lat, isForced ? undefined : r.direction));
+  // 风险点先聚类合并成尽量少的包围盒，避免多边形过多触发高德 API 报错
+  const active = risks.filter((r) => !ignored.has(r.id));
+  const riskPolygons = buildRiskPolygons(active, forced, size);
+  for (const poly of riskPolygons) {
+    polygons.push(poly);
     if (polygons.length >= MAX_AVOID_POLYGONS) break;
   }
 
@@ -101,6 +112,7 @@ export function useRoutePlanner(
   const [routeRisks, setRouteRisks] = useState<RouteRisk[]>([]);
   const [avoidedRisks, setAvoidedRisks] = useState<RouteRisk[]>([]);
   const [safelyIgnoredRisks, setSafelyIgnoredRisks] = useState<RouteRisk[]>([]);
+  const [deadRisks, setDeadRisks] = useState<RouteRisk[]>([]);
   const [routePath, setRoutePath] = useState<LngLat[]>([]);
   const [logs, setLogs] = useState<DebugLog[]>([]);
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(
@@ -169,6 +181,7 @@ export function useRoutePlanner(
     setPlanning(true);
     setStatus('Round 1');
     setLogs([]);
+    setDeadRisks([]);
     appendLog(0, '启动全自动规避引擎...', 'info');
 
     clearOverlays();
@@ -189,6 +202,7 @@ export function useRoutePlanner(
           current.ignoredRiskIds,
           current.forcedRiskIds,
           current.manualAvoidAreas,
+          current.riskAvoidSize ?? 'medium',
         );
 
         const points = await probeRoute(
@@ -229,6 +243,9 @@ export function useRoutePlanner(
               'ignore',
             );
           }
+        }, current.ringFilter ?? 'all', {
+          avoidDeadPoints: current.avoidDeadPoints ?? false,
+          forcedIds: current.forcedRiskIds,
         });
 
         let foundNew = false;
@@ -257,6 +274,7 @@ export function useRoutePlanner(
         current.ignoredRiskIds,
         current.forcedRiskIds,
         current.manualAvoidAreas,
+        current.riskAvoidSize ?? 'medium',
       );
 
       const driving = new AMap.Driving({
@@ -296,6 +314,7 @@ export function useRoutePlanner(
               const route = r.routes[0];
               const finalPts = collectPathPoints(route);
               const safelyIgnoredMap = new Map<string, RouteRisk>();
+              const deadMap = new Map<string, RouteRisk>();
               const finalRiskMap = scanPathRisks(finalPts, 0.08, (cam) => {
                 const id = `${cam.lng},${cam.lat}`;
                 if (current.forcedRiskIds.has(id)) return;
@@ -310,6 +329,23 @@ export function useRoutePlanner(
                   href: cam.href,
                   direction: cam.direction,
                 });
+              }, current.ringFilter ?? 'all', {
+                avoidDeadPoints: current.avoidDeadPoints ?? false,
+                forcedIds: current.forcedRiskIds,
+                onDead: (cam) => {
+                  const id = `${cam.lng},${cam.lat}`;
+                  if (current.ignoredRiskIds.has(id) || deadMap.has(id)) return;
+                  deadMap.set(id, {
+                    id,
+                    lng: cam.lng,
+                    lat: cam.lat,
+                    name: cam.name,
+                    type: cam.type,
+                    risk: cam.risk,
+                    href: cam.href,
+                    direction: cam.direction,
+                  });
+                },
               });
               const finalRisks: RouteRisk[] = [];
               finalRiskMap.forEach((risk, key) => {
@@ -317,6 +353,7 @@ export function useRoutePlanner(
               });
               setRouteRisks(finalRisks);
               setSafelyIgnoredRisks(Array.from(safelyIgnoredMap.values()));
+              setDeadRisks(Array.from(deadMap.values()));
               setRoutePath(finalPts);
               setRouteInfo({
                 distance: route.distance ?? 0,
@@ -348,6 +385,7 @@ export function useRoutePlanner(
     routeRisks,
     avoidedRisks,
     safelyIgnoredRisks,
+    deadRisks,
     routePath,
     logs,
     routeInfo,

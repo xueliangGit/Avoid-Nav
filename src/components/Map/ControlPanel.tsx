@@ -16,6 +16,7 @@ import {
   ArrowDownUp,
   History,
   Save,
+  Settings,
   ShieldOff,
   ChevronDown,
   ChevronRight,
@@ -48,6 +49,7 @@ interface ControlPanelProps {
   // 风险
   avoidedRisks: RouteRisk[];
   safelyIgnoredRisks: RouteRisk[];
+  deadRisks: RouteRisk[];
   routeRisks: RouteRisk[];
   ignoredRiskIds: Set<string>;
   forcedRiskIds: Set<string>;
@@ -72,6 +74,7 @@ interface ControlPanelProps {
   onToggleAddWaypoint: () => void;
   onStartAddAvoid: (size: ManualAvoidSize) => void;
   pendingAvoidSize: ManualAvoidSize;
+  onOpenSettings: () => void;
   onPlan: () => void | Promise<void>;
   onToggleIgnoreRisk: (id: string) => void;
   onToggleForceRisk: (id: string) => void;
@@ -113,6 +116,7 @@ const ControlPanel = ({
   manualAvoidAreas,
   avoidedRisks,
   safelyIgnoredRisks,
+  deadRisks,
   routeRisks,
   ignoredRiskIds,
   forcedRiskIds,
@@ -127,6 +131,7 @@ const ControlPanel = ({
   onToggleAddWaypoint,
   onStartAddAvoid,
   pendingAvoidSize,
+  onOpenSettings,
   onPlan,
   onToggleIgnoreRisk,
   onToggleForceRisk,
@@ -194,6 +199,15 @@ const ControlPanel = ({
                 {status}
               </span>
             )}
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition"
+              aria-label="设置"
+              title="设置"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
             <button
               type="button"
               onClick={onOpenHistory}
@@ -666,6 +680,63 @@ const ControlPanel = ({
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* 失效点(已停拍) - 路线命中但默认不避让，可手动选择避让 */}
+        {deadRisks.length > 0 && (
+          <div className="mt-4 border-t border-white/5 pt-4">
+            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center space-x-2 mb-2 px-1">
+              <ShieldOff className="w-3 h-3 text-slate-500" />
+              <span>失效点·已停拍 ({deadRisks.length})</span>
+            </h3>
+            <p className="text-[10px] text-slate-500 mb-3 leading-relaxed px-1">
+              路线经过这些已停拍的点位，默认不避让。如不放心，可点击右侧盾牌单独避让。
+            </p>
+            <div className="space-y-2 pr-1 custom-scrollbar text-[11px]">
+              {deadRisks.map((r) => {
+                const isForced = forcedRiskIds.has(r.id);
+                return (
+                  <div
+                    key={r.id}
+                    onClick={() => onFocusRisk(r)}
+                    className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer hover:brightness-125 transition ${
+                      isForced
+                        ? 'bg-amber-500/10 border-amber-500/30'
+                        : 'bg-slate-900/40 border-white/5'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3 overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`/images/${r.type}.png`}
+                        alt=""
+                        className="w-4 h-5 object-contain shrink-0 opacity-50"
+                      />
+                      <span className={`font-semibold truncate pr-2 ${isForced ? 'text-amber-300' : 'text-slate-400'}`}>
+                        {r.name}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        onToggleForceRisk(r.id);
+                      }}
+                      className={`shrink-0 cursor-pointer p-2 rounded-xl transition-all ${
+                        isForced
+                          ? 'bg-amber-500 text-white hover:bg-amber-600'
+                          : 'bg-white/5 text-slate-500 hover:bg-amber-500/30 hover:text-amber-400'
+                      }`}
+                      aria-label={isForced ? '取消避让' : '避让此失效点'}
+                      title={isForced ? '取消避让' : '避让此失效点'}
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
     </div>

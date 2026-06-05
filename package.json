@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3200",
     "preprocess": "node scripts/preprocess.js",
+    "update-data": "node scripts/fetch-jinjing.js && node scripts/preprocess.js",
+    "update-data-v2": "node scripts/fetch-api.js && node scripts/preprocess.js",
     "prebuild": "node scripts/preprocess.js",
     "build": "next build",
     "predev": "node scripts/preprocess.js",

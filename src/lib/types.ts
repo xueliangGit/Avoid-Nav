@@ -32,6 +32,9 @@ export interface RouteRisk {
 // 用户手动添加的避让区
 export type ManualAvoidSize = 'small' | 'medium' | 'large';
 
+// 六环内外筛选：仅显示/避让六环内、六环外、或全部
+export type RingFilter = 'all' | 'inside' | 'outside';
+
 export interface ManualAvoidArea {
   id: string;
   lng: number;
@@ -69,5 +72,6 @@ export type RawCameraTuple = [number, number, string, number, string, string, st
 
 export interface RefinedData {
   updatedAt: string;
+  source?: string; // 'jinjing' | 'api'，标识数据来自哪套数据源
   points: RawCameraTuple[];
 }

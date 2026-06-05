@@ -18,6 +18,7 @@ import type {
   Waypoint,
   ManualAvoidArea,
   ManualAvoidSize,
+  RingFilter,
   LngLat,
 } from '@/lib/types';
 import ControlPanel, { type InteractionMode, type RouteInfo } from './ControlPanel';
@@ -26,6 +27,7 @@ import DesktopLayout from '@/components/layouts/DesktopLayout';
 import MobileLayout from '@/components/layouts/MobileLayout';
 import MobileLandscapeLayout from '@/components/layouts/MobileLandscapeLayout';
 import HistoryDrawer from '@/components/History/HistoryDrawer';
+import SettingsDrawer from '@/components/shared/SettingsDrawer';
 import SaveRouteDialog from '@/components/History/SaveRouteDialog';
 
 interface AutoCompleteSelectEvent {
@@ -52,7 +54,10 @@ const makeId = (prefix: string): string =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 const MapContainer = () => {
-  const { AMap, map, ready, userLocation, error } = useAMap(MAP_CONTAINER_ID);
+  // 六环内外筛选（影响地图显示 + 避让范围）—— 必须在 useAMap 之前声明
+  const [ringFilter, setRingFilter] = useState<RingFilter>('all');
+  // 失效点(aa=4)是否也自动避让，默认否
+  const [avoidDeadPoints, setAvoidDeadPoints] = useState(false);
 
   const [start, setStart] = useState<PlaceItem | null>(null);
   const [end, setEnd] = useState<PlaceItem | null>(null);
@@ -60,6 +65,10 @@ const MapContainer = () => {
   const [manualAvoidAreas, setManualAvoidAreas] = useState<ManualAvoidArea[]>([]);
   const [ignoredRiskIds, setIgnoredRiskIds] = useState<Set<string>>(new Set());
   const [forcedRiskIds, setForcedRiskIds] = useState<Set<string>>(new Set());
+  // 自动风险点避让矩形尺寸（small/medium/large），影响规划时的避让范围
+  const [riskAvoidSize, setRiskAvoidSize] = useState<ManualAvoidSize>('medium');
+
+  const { AMap, map, ready, userLocation, error } = useAMap(MAP_CONTAINER_ID, ringFilter);
 
   const [mode, setMode] = useState<InteractionMode>('none');
   const modeRef = useRef<InteractionMode>(mode);
@@ -76,6 +85,7 @@ const MapContainer = () => {
 
   // 历史 / 保存 UI 局部状态
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
 
@@ -95,8 +105,8 @@ const MapContainer = () => {
   const { routes, save, remove, rename, toggleFavorite } = useHistory();
 
   const plannerInput = useMemo(
-    () => ({ start, end, waypoints, ignoredRiskIds, forcedRiskIds, manualAvoidAreas }),
-    [start, end, waypoints, ignoredRiskIds, forcedRiskIds, manualAvoidAreas]
+    () => ({ start, end, waypoints, ignoredRiskIds, forcedRiskIds, manualAvoidAreas, riskAvoidSize, ringFilter, avoidDeadPoints }),
+    [start, end, waypoints, ignoredRiskIds, forcedRiskIds, manualAvoidAreas, riskAvoidSize, ringFilter, avoidDeadPoints]
   );
 
   const {
@@ -105,6 +115,7 @@ const MapContainer = () => {
     routeRisks,
     avoidedRisks,
     safelyIgnoredRisks,
+    deadRisks,
     routePath,
     logs,
     routeInfo,
@@ -596,6 +607,7 @@ const MapContainer = () => {
       manualAvoidAreas={manualAvoidAreas}
       avoidedRisks={avoidedRisks}
       safelyIgnoredRisks={safelyIgnoredRisks}
+      deadRisks={deadRisks}
       routeRisks={routeRisks}
       ignoredRiskIds={ignoredRiskIds}
       forcedRiskIds={forcedRiskIds}
@@ -610,6 +622,7 @@ const MapContainer = () => {
       onToggleAddWaypoint={handleToggleAddWaypoint}
       onStartAddAvoid={handleStartAddAvoid}
       pendingAvoidSize={pendingAvoidSize}
+      onOpenSettings={() => setSettingsOpen(true)}
       onPlan={handlePlan}
       onToggleIgnoreRisk={handleToggleIgnoreRisk}
       onToggleForceRisk={handleToggleForceRisk}
@@ -681,6 +694,18 @@ const MapContainer = () => {
           </div>
         </div>
       )}
+
+      <SettingsDrawer
+        open={settingsOpen}
+        variant={drawerVariant}
+        riskAvoidSize={riskAvoidSize}
+        onChangeRiskAvoidSize={setRiskAvoidSize}
+        ringFilter={ringFilter}
+        onChangeRingFilter={setRingFilter}
+        avoidDeadPoints={avoidDeadPoints}
+        onChangeAvoidDeadPoints={setAvoidDeadPoints}
+        onClose={() => setSettingsOpen(false)}
+      />
 
       <HistoryDrawer
         open={historyOpen}
