@@ -57,7 +57,7 @@ const WechatGuide = ({ open, onClose }: WechatGuideProps) => {
               选择 <span className="font-bold">"在浏览器中打开"</span>
               <br />
               <br />
-              然后再点击导航按钮
+              路线会自动带过去，再点导航即可
             </div>
           </div>
         </div>
