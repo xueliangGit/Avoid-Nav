@@ -5,6 +5,21 @@
 
 ---
 
+## 🔖 会话恢复速览（2026-06-05 收尾）
+
+**Git 状态**：分支 `main`，工作区干净，本地领先 `origin/main` **3 个提交**（`f7c239a` 主题任务排期、`6969b17` 微信分享修复、`2f61a0d` 文档）→ **未推送，待用户手动 `git push`**。
+
+**本会话做了什么**：性能(MassMarks)、避让聚类+三档尺寸、六环筛选修正(六环外=aa6/六环内=aa≠6)、失效点(aa4)可选避让+设置开关、双数据源架构、设置面板 SettingsDrawer、合并 worktree 的微信分享修复。
+
+**下一步最该做的**：
+1. 🔴 **新 API 源接入收尾** — 等用户给接口地址，然后填 `fetch-api.js` + 校准 `CameraType` 枚举（见 §二）
+2. 🔵 **明暗主题切换** — 已排期未开始（见 §二 末）
+3. ⚙️ worktree `.worktrees/refactor-main` 已无独有改动，可清理
+
+**关键文件**：`useAMap.ts`(渲染/六环显示)、`avoidance.ts`(聚类/扫描/尺寸)、`useRoutePlanner.ts`(规划/deadRisks)、`SettingsDrawer.tsx`(设置)、`scripts/{fetch-jinjing,fetch-api,preprocess}.js`(数据)。
+
+---
+
 ## 一、本轮已完成（已提交 `2c8b82b`，已推送）
 
 | 模块 | 改动 | 关键文件 |
