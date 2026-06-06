@@ -13,7 +13,7 @@
 
 **下一步最该做的**：
 1. 🔴 **新 API 源接入收尾** — 等用户给接口地址，然后填 `fetch-api.js` + 校准 `CameraType` 枚举（见 §二）
-2. 🔵 **明暗主题切换** — 已排期未开始（见 §二 末）
+2. 🔵 **明暗主题切换** — 已出实施方案（`plans/2026-06-06-theme-toggle-plan.md`），待 gemini 3.5 实现（见 §二 末）
 3. ✅ worktree `.worktrees/refactor-main` 已清理（含 `feature/refactor` 分支）
 
 **关键文件**：`useAMap.ts`(渲染/六环显示)、`avoidance.ts`(聚类/扫描/尺寸)、`useRoutePlanner.ts`(规划/deadRisks)、`SettingsDrawer.tsx`(设置)、`scripts/{fetch-jinjing,fetch-api,preprocess}.js`(数据)。
@@ -56,13 +56,23 @@
 ### 待确认的语义
 - [ ] `aa='1'`(304 条) 的真实含义仍未知（当前按"其他监控/risk2/避让"处理）
 
-### 功能：明暗主题切换（已排期，未开始）
-当前 UI 是写死的深色（硬编码 `bg-slate-*` 等，无 `dark:` 类、无 theme context），地图底图固定为浅色 `amap://styles/normal`（深色面板 + 浅色地图混搭）。
-- [ ] 引入主题状态（浅色/深色/跟随系统 `prefers-color-scheme`），存入设置 + localStorage 持久化
-- [ ] 全量给组件加 `dark:` 变体（或改用 CSS 变量色板），统一配色
-- [ ] 地图样式随主题联动（深色用 `amap://styles/dark`）
-- [ ] 设置面板 `SettingsDrawer` 增加主题切换入口
-- [ ] Tailwind 配置 `darkMode` 策略（class 或 media）
+### 功能：明暗主题切换（✅ 已出实施方案，待实现）
+
+**完整方案见**：[`docs/superpowers/plans/2026-06-06-theme-toggle-plan.md`](../plans/2026-06-06-theme-toggle-plan.md)
+**实现方**：交由 gemini 3.5 按该方案落地（省 token），本会话仅出方案。
+
+已确认的三项决策（方案据此设计）：
+- 默认**跟随系统** `prefers-color-scheme`，可手动覆盖浅/深，localStorage 持久化
+- **CSS 变量语义色板**（Tailwind **v4** `@theme inline` + `.dark` 类，非逐组件 `dark:` 变体）
+- **仅中性色适配**：风险/状态色（红绿黄蓝）两主题不变；深色 token 值 = 现状硬编码值，零回归
+
+方案要点（细节在 plan 文件）：
+- [ ] `globals.css` 加 `:root`/`.dark` 中性色变量 + `@theme inline` 暴露 `bg-surface`/`text-fg`/`border-border` 等
+- [ ] 新增 `src/lib/theme.ts` + `src/hooks/useTheme.ts`；`layout.tsx` 加防闪烁(FOUC)内联脚本
+- [ ] `useAMap.ts` 接 `isDark` 参数，`setMapStyle` 切 `amap://styles/dark`
+- [ ] `SettingsDrawer.tsx` 加「外观主题」3 按钮入口（Sun/Moon/Monitor）
+- [ ] 12 个组件文件机械替换 ~206 处中性类→token（最大头 ControlPanel 97 处）
+- [ ] 注意：v4 下 `tailwind.config.js` 的 `darkMode` 失效，走 CSS-first；删除 MapContainer `<style jsx>` 里覆盖 globals 的重复硬编码深色规则
 
 ---
 
