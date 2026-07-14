@@ -16,7 +16,6 @@ export interface UseAMapResult {
 
 const INITIAL_CENTER: [number, number] = [116.397428, 39.90923];
 const INITIAL_ZOOM = 11;
-const MAP_STYLE = 'amap://styles/normal';
 const POPUP_BASE_URL = 'https://www.jinjing365.com/wap';
 
 const PLUGINS = [
@@ -43,7 +42,7 @@ function buildPopupHtml(name: string, href: string): string {
   `;
 }
 
-export function useAMap(containerId: string, ringFilter: RingFilter = 'all'): UseAMapResult {
+export function useAMap(containerId: string, ringFilter: RingFilter = 'all', isDark: boolean = false): UseAMapResult {
   const [AMap, setAMap] = useState<any>(null);
   const [map, setMap] = useState<any>(null);
   const [ready, setReady] = useState(false);
@@ -79,7 +78,7 @@ export function useAMap(containerId: string, ringFilter: RingFilter = 'all'): Us
         const mapInstance = new AMapLib.Map(containerId, {
           zoom: INITIAL_ZOOM,
           center: INITIAL_CENTER,
-          mapStyle: MAP_STYLE,
+          mapStyle: isDark ? 'amap://styles/dark' : 'amap://styles/normal',
         });
         mapInstanceRef.current = mapInstance;
 
@@ -160,7 +159,15 @@ export function useAMap(containerId: string, ringFilter: RingFilter = 'all'): Us
     return () => {
       cancelled = true;
     };
-  }, [containerId]);
+  }, [containerId, isDark]);
+
+  // 主题切换时实时切换地图底图样式（不重建实例）
+  useEffect(() => {
+    const mapInstance = mapInstanceRef.current;
+    if (!mapInstance) return;
+    // setMapStyle 无 TS 声明，any-cast；AMap 2.0 运行时支持
+    (mapInstance as any)?.setMapStyle?.(isDark ? 'amap://styles/dark' : 'amap://styles/normal');
+  }, [isDark]);
 
   // 六环筛选变化时更新 massMarks 数据（增量更新，不重建实例）
   useEffect(() => {

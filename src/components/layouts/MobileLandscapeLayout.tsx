@@ -20,13 +20,13 @@ export default function MobileLandscapeLayout({
   return (
     <div className="relative w-full h-full flex">
       <div className="flex-1 relative">{mapElement}</div>
-      <div className="w-[40%] max-w-[420px] min-w-[280px] bg-slate-950/95 backdrop-blur-xl border-l border-white/10 flex flex-col">
-        <div className="flex border-b border-white/5 px-3">
+      <div className="w-[40%] max-w-[420px] min-w-[280px] bg-surface/95 backdrop-blur-xl border-l border-border flex flex-col">
+        <div className="flex border-b border-border-soft px-3">
           <button
             type="button"
             onClick={() => setTab('control')}
             className={`px-3 py-2.5 text-[11px] font-black ${
-              tab === 'control' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-500'
+              tab === 'control' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-fg-subtle'
             }`}
           >
             控制
@@ -35,7 +35,7 @@ export default function MobileLandscapeLayout({
             type="button"
             onClick={() => setTab('debug')}
             className={`px-3 py-2.5 text-[11px] font-black ${
-              tab === 'debug' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-500'
+              tab === 'debug' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-fg-subtle'
             }`}
           >
             日志

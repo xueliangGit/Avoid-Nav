@@ -19,7 +19,7 @@ const WechatGuide = ({ open, onClose }: WechatGuideProps) => {
       {/* 关闭按钮 */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+        className="absolute top-4 right-4 p-2 rounded-full bg-overlay hover:bg-overlay-strong transition-colors"
         aria-label="关闭"
       >
         <X className="w-6 h-6 text-white" />
@@ -63,7 +63,7 @@ const WechatGuide = ({ open, onClose }: WechatGuideProps) => {
         </div>
 
         {/* 底部说明 */}
-        <div className="mt-6 text-xs text-slate-400">
+        <div className="mt-6 text-xs text-fg-muted">
           这是微信的安全限制，我们无法绕过
         </div>
       </div>

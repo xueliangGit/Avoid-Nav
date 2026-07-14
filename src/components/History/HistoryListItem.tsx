@@ -60,12 +60,12 @@ export default function HistoryListItem({
   };
 
   return (
-    <div className="bg-slate-900/70 border border-white/5 rounded-2xl p-3 hover:bg-slate-900 transition">
+    <div className="bg-surface-2/70 border border-border-soft rounded-2xl p-3 hover:bg-surface-2 transition">
       <div className="flex items-start justify-between gap-2 mb-2">
         <button
           type="button"
           onClick={() => onToggleFavorite(route.id)}
-          className="shrink-0 p-1 -ml-1 text-slate-500 hover:text-amber-400 transition"
+          className="shrink-0 p-1 -ml-1 text-fg-subtle hover:text-amber-400 transition"
           aria-label={route.favorite ? '取消收藏' : '收藏'}
         >
           <Star
@@ -86,7 +86,7 @@ export default function HistoryListItem({
                     setEditing(false);
                   }
                 }}
-                className="flex-1 bg-slate-800 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500/40"
+                className="flex-1 bg-surface-3 border border-border rounded-lg px-2 py-1 text-xs text-fg outline-none focus:border-blue-500/40"
                 autoFocus
               />
               <button onClick={commit} className="p-1 text-emerald-400" aria-label="确认">
@@ -97,16 +97,16 @@ export default function HistoryListItem({
                   setDraft(route.name);
                   setEditing(false);
                 }}
-                className="p-1 text-slate-400"
+                className="p-1 text-fg-muted"
                 aria-label="取消"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
-            <h4 className="text-xs font-bold text-white truncate">{route.name}</h4>
+            <h4 className="text-xs font-bold text-fg truncate">{route.name}</h4>
           )}
-          <p className="text-[10px] text-slate-500 mt-1 truncate">
+          <p className="text-[10px] text-fg-subtle mt-1 truncate">
             {route.start.name} → {route.end.name}
           </p>
         </div>
@@ -115,19 +115,19 @@ export default function HistoryListItem({
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="p-1 text-slate-500 hover:text-white transition"
+            className="p-1 text-fg-subtle hover:text-fg transition"
             aria-label="更多"
           >
             <MoreVertical className="w-4 h-4" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-7 z-10 bg-slate-800 border border-white/10 rounded-xl shadow-2xl py-1 min-w-[120px]">
+            <div className="absolute right-0 top-7 z-10 bg-surface-3 border border-border rounded-xl shadow-2xl py-1 min-w-[120px]">
               <button
                 onClick={() => {
                   setEditing(true);
                   setMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 text-xs text-slate-200 hover:bg-white/5 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-xs text-fg-2 hover:bg-overlay-soft flex items-center gap-2"
               >
                 <Pencil className="w-3 h-3" /> 重命名
               </button>
@@ -146,14 +146,14 @@ export default function HistoryListItem({
       </div>
 
       {(route.waypoints.length > 0 || route.summary) && (
-        <p className="text-[10px] text-slate-500 mb-1">
+        <p className="text-[10px] text-fg-subtle mb-1">
           {route.waypoints.length > 0 && `途经 ${route.waypoints.length} 处`}
           {route.summary && route.waypoints.length > 0 && ' · '}
           {route.summary && `${fmtKm(route.summary.distance)} / ${fmtMin(route.summary.duration)}`}
           {route.summary && ` · ${route.summary.riskCount} 处眼`}
         </p>
       )}
-      <p className="text-[10px] text-slate-600 mb-2">
+      <p className="text-[10px] text-fg-faint mb-2">
         {fmtTime(route.updatedAt)}
       </p>
 

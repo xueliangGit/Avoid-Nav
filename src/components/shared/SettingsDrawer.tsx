@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { X, Settings, Check } from 'lucide-react';
+import { X, Settings, Check, Sun, Moon, Monitor } from 'lucide-react';
 import type { ManualAvoidSize, RingFilter } from '@/lib/types';
+import type { Theme } from '@/lib/theme';
 
 interface Props {
   open: boolean;
@@ -13,6 +14,8 @@ interface Props {
   onChangeRingFilter: (filter: RingFilter) => void;
   avoidDeadPoints: boolean;
   onChangeAvoidDeadPoints: (v: boolean) => void;
+  theme: Theme;
+  onChangeTheme: (t: Theme) => void;
   onClose: () => void;
 }
 
@@ -21,6 +24,12 @@ const SIZE_LABELS: Record<ManualAvoidSize, { label: string; desc: string }> = {
   medium: { label: '中 60m', desc: '常规道路（推荐）' },
   large: { label: '大 90m', desc: '宽主路 / 多车道' },
 };
+
+const THEME_OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
+  { value: 'light', label: '浅色', icon: Sun },
+  { value: 'dark', label: '深色', icon: Moon },
+  { value: 'system', label: '跟随系统', icon: Monitor },
+];
 
 export default function SettingsDrawer({
   open,
@@ -31,6 +40,8 @@ export default function SettingsDrawer({
   onChangeRingFilter,
   avoidDeadPoints,
   onChangeAvoidDeadPoints,
+  theme,
+  onChangeTheme,
   onClose,
 }: Props) {
   useEffect(() => {
@@ -57,21 +68,21 @@ export default function SettingsDrawer({
         aria-hidden
       />
       <div
-        className={`${containerClass} bg-slate-950 ${
-          variant === 'side' ? 'rounded-3xl border border-white/10 shadow-2xl' : ''
+        className={`${containerClass} bg-surface ${
+          variant === 'side' ? 'rounded-3xl border border-border shadow-2xl' : ''
         }`}
         role="dialog"
         aria-label="设置"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border-soft">
           <div className="flex items-center gap-2">
             <Settings className="w-4 h-4 text-blue-400" />
-            <h3 className="font-black text-white text-sm">设置</h3>
+            <h3 className="font-black text-fg text-sm">设置</h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition"
+            className="p-2 rounded-lg text-fg-muted hover:text-fg hover:bg-overlay-soft transition"
             aria-label="关闭"
           >
             <X className="w-4 h-4" />
@@ -79,12 +90,39 @@ export default function SettingsDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6 custom-scrollbar">
+          {/* 外观主题 */}
+          <section>
+            <h4 className="text-[10px] font-black text-fg-subtle uppercase tracking-widest mb-3">
+              外观主题
+            </h4>
+            <div className="grid grid-cols-3 gap-2">
+              {THEME_OPTIONS.map(({ value, label, icon: Icon }) => {
+                const active = theme === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => onChangeTheme(value)}
+                    className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border transition ${
+                      active
+                        ? 'bg-blue-600/20 border-blue-500/60 text-fg'
+                        : 'bg-overlay-soft border-border-soft text-fg-muted hover:bg-overlay hover:text-fg'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-xs font-black">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           {/* 避让范围 */}
           <section>
-            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">
+            <h4 className="text-[10px] font-black text-fg-subtle uppercase tracking-widest mb-3">
               自动避让范围
             </h4>
-            <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
+            <p className="text-[11px] text-fg-muted mb-3 leading-relaxed">
               规划路线时，每个风险点外扩的矩形尺寸。路面较宽、避让不到位时调大。
             </p>
             <div className="grid grid-cols-3 gap-2">
@@ -98,8 +136,8 @@ export default function SettingsDrawer({
                     onClick={() => onChangeRiskAvoidSize(size)}
                     className={`flex flex-col items-center py-3 rounded-xl border transition ${
                       active
-                        ? 'bg-blue-600/20 border-blue-500/60 text-white'
-                        : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                        ? 'bg-blue-600/20 border-blue-500/60 text-fg'
+                        : 'bg-overlay-soft border-border-soft text-fg-muted hover:bg-overlay hover:text-fg'
                     }`}
                   >
                     <span className="text-xs font-black">{info.label}</span>
@@ -112,10 +150,10 @@ export default function SettingsDrawer({
 
           {/* 六环内外筛选 */}
           <section>
-            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">
+            <h4 className="text-[10px] font-black text-fg-subtle uppercase tracking-widest mb-3">
               六环范围筛选
             </h4>
-            <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
+            <p className="text-[11px] text-fg-muted mb-3 leading-relaxed">
               控制地图显示和避让范围。「六环外」= 仅需六环外证的区域(aa=6)，「六环内」= 除六环外以外的全部点位。
             </p>
             <div className="grid grid-cols-3 gap-2">
@@ -133,7 +171,7 @@ export default function SettingsDrawer({
                     className={`flex flex-col items-center py-3 rounded-xl border transition ${
                       active
                         ? 'bg-emerald-600/20 border-emerald-500/60 text-white'
-                        : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                        : 'bg-overlay-soft border-border-soft text-fg-muted hover:bg-overlay hover:text-fg'
                     }`}
                   >
                     <span className="text-xs font-black">{label}</span>
@@ -146,7 +184,7 @@ export default function SettingsDrawer({
 
           {/* 失效点处理 */}
           <section>
-            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">
+            <h4 className="text-[10px] font-black text-fg-subtle uppercase tracking-widest mb-3">
               失效点(已停拍)
             </h4>
             <button
@@ -155,12 +193,12 @@ export default function SettingsDrawer({
               className={`w-full flex items-center justify-between gap-3 py-3 px-3 rounded-xl border transition text-left ${
                 avoidDeadPoints
                   ? 'bg-emerald-600/15 border-emerald-500/50'
-                  : 'bg-white/5 border-white/5 hover:bg-white/10'
+                  : 'bg-overlay-soft border-border-soft hover:bg-overlay'
               }`}
             >
               <div className="flex flex-col">
-                <span className="text-xs font-black text-white">失效点也自动避让</span>
-                <span className="text-[10px] mt-0.5 text-slate-400 leading-relaxed">
+                <span className="text-xs font-black text-fg">失效点也自动避让</span>
+                <span className="text-[10px] mt-0.5 text-fg-muted leading-relaxed">
                   关闭时仍会在路线命中处列出，可逐个手动选择避让
                 </span>
               </div>
@@ -169,7 +207,7 @@ export default function SettingsDrawer({
                 className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-black ${
                   avoidDeadPoints
                     ? 'bg-emerald-500 text-white'
-                    : 'bg-slate-700 text-slate-300'
+                    : 'bg-surface-4 text-fg-2'
                 }`}
               >
                 {avoidDeadPoints ? (

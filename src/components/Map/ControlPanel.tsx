@@ -180,8 +180,8 @@ const ControlPanel = ({
 
   const isFlow = variant === 'flow';
   const rootClass = isFlow
-    ? 'bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-white/10 flex flex-col'
-    : 'bg-slate-950/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-white/10 flex flex-col max-h-full overflow-y-auto custom-scrollbar';
+    ? 'bg-surface/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-border flex flex-col'
+    : 'bg-surface/80 backdrop-blur shadow-2xl rounded-3xl p-6 border border-border flex flex-col max-h-full overflow-y-auto custom-scrollbar';
 
   return (
     <div className={rootClass}>
@@ -191,7 +191,7 @@ const ControlPanel = ({
             <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
               <Navigation className="text-white w-5 h-5 fill-current" />
             </div>
-            <h2 className="font-black text-white text-lg">北京避让导航</h2>
+            <h2 className="font-black text-fg text-lg">北京避让导航</h2>
           </div>
           <div className="flex items-center space-x-2">
             {status && (
@@ -202,7 +202,7 @@ const ControlPanel = ({
             <button
               type="button"
               onClick={onOpenSettings}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition"
+              className="p-2 rounded-xl bg-overlay-soft hover:bg-overlay text-fg-2 hover:text-fg transition"
               aria-label="设置"
               title="设置"
             >
@@ -211,7 +211,7 @@ const ControlPanel = ({
             <button
               type="button"
               onClick={onOpenHistory}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition"
+              className="p-2 rounded-xl bg-overlay-soft hover:bg-overlay text-fg-2 hover:text-fg transition"
               aria-label="历史路线"
               title="历史路线"
             >
@@ -229,14 +229,14 @@ const ControlPanel = ({
               type="text"
               placeholder="起点位置"
               defaultValue={start?.name ?? ''}
-              className="w-full bg-slate-900 border border-white/5 rounded-2xl py-4 pl-5 pr-24 text-xs text-white font-bold focus:outline-none focus:border-blue-500/40 placeholder:text-slate-600"
+              className="w-full bg-surface-2 border border-border-soft rounded-2xl py-4 pl-5 pr-24 text-xs text-fg font-bold focus:outline-none focus:border-blue-500/40 placeholder:text-fg-faint"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
               {start && (
                 <button
                   type="button"
                   onClick={onClearStart}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition"
+                  className="p-1.5 rounded-lg bg-overlay-soft hover:bg-overlay text-fg-muted hover:text-fg transition"
                   aria-label="清除起点"
                 >
                   <X className="w-3 h-3" />
@@ -262,13 +262,13 @@ const ControlPanel = ({
               type="text"
               placeholder="目的地"
               defaultValue={end?.name ?? ''}
-              className="w-full bg-slate-900 border border-white/5 rounded-2xl py-4 pl-5 pr-12 text-xs text-white font-bold focus:outline-none focus:border-blue-500/40 placeholder:text-slate-600"
+              className="w-full bg-surface-2 border border-border-soft rounded-2xl py-4 pl-5 pr-12 text-xs text-fg font-bold focus:outline-none focus:border-blue-500/40 placeholder:text-fg-faint"
             />
             {end && (
               <button
                 type="button"
                 onClick={onClearEnd}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-overlay-soft hover:bg-overlay text-fg-muted hover:text-fg transition"
                 aria-label="清除终点"
               >
                 <X className="w-3 h-3" />
@@ -281,7 +281,7 @@ const ControlPanel = ({
             type="button"
             onClick={onSwapEndpoints}
             disabled={!start && !end}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-950 text-slate-300 hover:bg-blue-600 hover:text-white shadow-lg transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-surface-3 border-2 border-surface text-fg-2 hover:bg-blue-600 hover:text-white shadow-lg transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
             aria-label="互换起点和终点"
             title="互换起点和终点"
           >
@@ -292,7 +292,7 @@ const ControlPanel = ({
         {/* 途经点 */}
         <div className="mb-5">
           <div className="flex items-center justify-between mb-2 px-1">
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center space-x-2">
+            <h3 className="text-[10px] font-black text-fg-subtle uppercase tracking-widest flex items-center space-x-2">
               <MapPin className="w-3 h-3 text-amber-400" />
               <span>途经点 ({waypoints.length})</span>
             </h3>
@@ -302,7 +302,7 @@ const ControlPanel = ({
               className={`flex items-center space-x-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition ${
                 mode === 'add-waypoint'
                   ? 'bg-amber-500 text-white shadow shadow-amber-500/30'
-                  : 'bg-white/5 text-amber-400 hover:bg-white/10'
+                  : 'bg-overlay-soft text-amber-400 hover:bg-overlay'
               }`}
             >
               <Plus className="w-3 h-3" />
@@ -314,18 +314,18 @@ const ControlPanel = ({
               {waypoints.map((w, idx) => (
                 <div
                   key={w.id}
-                  className="flex items-center justify-between bg-slate-900/60 border border-white/5 rounded-xl py-2 px-3 text-[11px]"
+                  className="flex items-center justify-between bg-surface-2/60 border border-border-soft rounded-xl py-2 px-3 text-[11px]"
                 >
                   <div className="flex items-center space-x-2 overflow-hidden">
                     <span className="shrink-0 w-5 h-5 rounded-md bg-amber-500/20 text-amber-400 text-[10px] font-black flex items-center justify-center">
                       {idx + 1}
                     </span>
-                    <span className="truncate text-slate-200 font-semibold">{w.name}</span>
+                    <span className="truncate text-fg-2 font-semibold">{w.name}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => onRemoveWaypoint(w.id)}
-                    className="shrink-0 p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition"
+                    className="shrink-0 p-1 rounded-md text-fg-subtle hover:text-red-400 hover:bg-red-500/10 transition"
                     aria-label="删除途经点"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -339,7 +339,7 @@ const ControlPanel = ({
         {/* 手动避让区 */}
         <div className="mb-5">
           <div className="flex items-center justify-between mb-2 px-1">
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center space-x-2">
+            <h3 className="text-[10px] font-black text-fg-subtle uppercase tracking-widest flex items-center space-x-2">
               <ShieldAlert className="w-3 h-3 text-rose-400" />
               <span>手动避让区 ({manualAvoidAreas.length})</span>
             </h3>
@@ -367,7 +367,7 @@ const ControlPanel = ({
                   className={`flex items-center justify-center space-x-1 text-[10px] font-bold py-2 rounded-lg transition ${
                     active
                       ? 'bg-rose-500 text-white shadow shadow-rose-500/30'
-                      : 'bg-white/5 text-rose-400 hover:bg-white/10'
+                      : 'bg-overlay-soft text-rose-400 hover:bg-overlay'
                   }`}
                 >
                   <Plus className="w-3 h-3" />
@@ -381,18 +381,18 @@ const ControlPanel = ({
               {manualAvoidAreas.map((a, idx) => (
                 <div
                   key={a.id}
-                  className="flex items-center justify-between bg-slate-900/60 border border-white/5 rounded-xl py-2 px-3 text-[11px]"
+                  className="flex items-center justify-between bg-surface-2/60 border border-border-soft rounded-xl py-2 px-3 text-[11px]"
                 >
                   <div className="flex items-center space-x-2 overflow-hidden">
                     <span className="shrink-0 w-5 h-5 rounded-md bg-rose-500/20 text-rose-400 text-[10px] font-black flex items-center justify-center">
                       {idx + 1}
                     </span>
-                    <span className="truncate text-slate-200 font-semibold">{a.label}</span>
+                    <span className="truncate text-fg-2 font-semibold">{a.label}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => onRemoveAvoidArea(a.id)}
-                    className="shrink-0 p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition"
+                    className="shrink-0 p-1 rounded-md text-fg-subtle hover:text-red-400 hover:bg-red-500/10 transition"
                     aria-label="删除避让区"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -408,7 +408,7 @@ const ControlPanel = ({
           type="button"
           onClick={onPlan}
           disabled={planning}
-          className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-blue-900/40 hover:bg-blue-700 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed transition-all flex items-center justify-center space-x-2"
+          className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-blue-900/40 hover:bg-blue-700 disabled:bg-surface-3 disabled:text-fg-subtle disabled:cursor-not-allowed transition-all flex items-center justify-center space-x-2"
         >
           {planning ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -431,19 +431,19 @@ const ControlPanel = ({
         {/* 路线信息 */}
         {routeInfo && !planning && (
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="bg-slate-900/60 border border-white/5 rounded-2xl p-3 text-center">
-              <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">
+            <div className="bg-surface-2/60 border border-border-soft rounded-2xl p-3 text-center">
+              <div className="text-[10px] uppercase tracking-widest text-fg-subtle font-bold mb-1">
                 距离
               </div>
-              <div className="text-base font-black text-white">
+              <div className="text-base font-black text-fg">
                 {formatDistance(routeInfo.distance)}
               </div>
             </div>
-            <div className="bg-slate-900/60 border border-white/5 rounded-2xl p-3 text-center">
-              <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">
+            <div className="bg-surface-2/60 border border-border-soft rounded-2xl p-3 text-center">
+              <div className="text-[10px] uppercase tracking-widest text-fg-subtle font-bold mb-1">
                 预计时间
               </div>
-              <div className="text-base font-black text-white">
+              <div className="text-base font-black text-fg">
                 {formatDuration(routeInfo.duration)}
               </div>
             </div>
@@ -457,7 +457,7 @@ const ControlPanel = ({
               type="button"
               onClick={onStartNavigation}
               disabled={!canNavigate}
-              className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-2xl font-black text-sm shadow-xl shadow-emerald-900/40 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed disabled:shadow-none transition flex items-center justify-center space-x-2"
+              className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-2xl font-black text-sm shadow-xl shadow-emerald-900/40 disabled:from-surface-3 disabled:to-surface-3 disabled:text-fg-subtle disabled:cursor-not-allowed disabled:shadow-none transition flex items-center justify-center space-x-2"
             >
               <Navigation className="w-4 h-4 fill-current" />
               <span>开始导航</span>
@@ -492,12 +492,12 @@ const ControlPanel = ({
             const isHit = activeRiskIds.has(r.id);
             const isForced = forcedRiskIds.has(r.id);
             const rowClass = isIgnored
-              ? 'bg-slate-900 border-white/5 opacity-60'
+              ? 'bg-surface-2 border-border-soft opacity-60'
               : isHit
               ? 'bg-red-500/10 border-red-500/30'
               : 'bg-emerald-500/10 border-emerald-500/30';
             const nameClass = isIgnored
-              ? 'text-slate-500 line-through'
+              ? 'text-fg-subtle line-through'
               : isHit
               ? 'text-red-400'
               : 'text-emerald-400';
@@ -545,8 +545,8 @@ const ControlPanel = ({
                     }}
                     className={`cursor-pointer p-2 rounded-xl transition-all ${
                       isIgnored
-                        ? 'bg-slate-800 text-slate-600 hover:text-slate-300'
-                        : 'bg-white/5 text-blue-400 hover:bg-blue-600 hover:text-white'
+                        ? 'bg-surface-3 text-fg-faint hover:text-fg-2'
+                        : 'bg-overlay-soft text-blue-400 hover:bg-blue-600 hover:text-white'
                     }`}
                     aria-label={isIgnored ? '恢复避让' : '取消避让此点'}
                     title={isIgnored ? '恢复避让' : '取消避让'}
@@ -559,7 +559,7 @@ const ControlPanel = ({
           };
 
           return (
-            <div className="mt-6 flex flex-col border-t border-white/5 pt-5 space-y-3">
+            <div className="mt-6 flex flex-col border-t border-border-soft pt-5 space-y-3">
               {/* 仍命中（红） */}
               {hitRisks.length > 0 && (
                 <div>
@@ -613,25 +613,25 @@ const ControlPanel = ({
 
         {/* 安全忽略（方向不冲突，默认未避让） */}
         {safelyIgnoredRisks.length > 0 && (
-          <div className="mt-4 border-t border-white/5 pt-4">
+          <div className="mt-4 border-t border-border-soft pt-4">
             <button
               type="button"
               onClick={() => setSafelyExpanded((v) => !v)}
               className="w-full flex items-center justify-between mb-2 px-1 group"
             >
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center space-x-2 group-hover:text-slate-300 transition">
-                <ShieldOff className="w-3 h-3 text-slate-500" />
+              <h3 className="text-[10px] font-black text-fg-subtle uppercase tracking-widest flex items-center space-x-2 group-hover:text-fg-2 transition">
+                <ShieldOff className="w-3 h-3 text-fg-subtle" />
                 <span>路过未避让 ({safelyIgnoredRisks.length})</span>
               </h3>
               {safelyExpanded ? (
-                <ChevronDown className="w-3 h-3 text-slate-500" />
+                <ChevronDown className="w-3 h-3 text-fg-subtle" />
               ) : (
-                <ChevronRight className="w-3 h-3 text-slate-500" />
+                <ChevronRight className="w-3 h-3 text-fg-subtle" />
               )}
             </button>
             {safelyExpanded && (
               <>
-                <p className="text-[10px] text-slate-500 mb-3 leading-relaxed px-1">
+                <p className="text-[10px] text-fg-subtle mb-3 leading-relaxed px-1">
                   路过这些电子眼但方向不冲突所以未避让。如有疑虑，可点击右侧盾牌强制避让。
                 </p>
                 <div className="space-y-2 pr-1 custom-scrollbar text-[11px]">
@@ -644,7 +644,7 @@ const ControlPanel = ({
                         className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer hover:brightness-125 transition ${
                           isForced
                             ? 'bg-amber-500/10 border-amber-500/30'
-                            : 'bg-slate-900/40 border-white/5'
+                            : 'bg-surface-2/40 border-border-soft'
                         }`}
                       >
                         <div className="flex items-center space-x-3 overflow-hidden">
@@ -654,7 +654,7 @@ const ControlPanel = ({
                             alt=""
                             className="w-4 h-5 object-contain shrink-0 opacity-70"
                           />
-                          <span className={`font-semibold truncate pr-2 ${isForced ? 'text-amber-300' : 'text-slate-400'}`}>
+                          <span className={`font-semibold truncate pr-2 ${isForced ? 'text-amber-300' : 'text-fg-muted'}`}>
                             {r.name}
                           </span>
                         </div>
@@ -667,7 +667,7 @@ const ControlPanel = ({
                           className={`shrink-0 cursor-pointer p-2 rounded-xl transition-all ${
                             isForced
                               ? 'bg-amber-500 text-white hover:bg-amber-600'
-                              : 'bg-white/5 text-slate-500 hover:bg-amber-500/30 hover:text-amber-400'
+                              : 'bg-overlay-soft text-fg-subtle hover:bg-amber-500/30 hover:text-amber-400'
                           }`}
                           aria-label={isForced ? '取消强制避让' : '强制避让此点'}
                           title={isForced ? '取消强制避让' : '强制避让'}
@@ -685,12 +685,12 @@ const ControlPanel = ({
 
         {/* 失效点(已停拍) - 路线命中但默认不避让，可手动选择避让 */}
         {deadRisks.length > 0 && (
-          <div className="mt-4 border-t border-white/5 pt-4">
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center space-x-2 mb-2 px-1">
-              <ShieldOff className="w-3 h-3 text-slate-500" />
+          <div className="mt-4 border-t border-border-soft pt-4">
+            <h3 className="text-[10px] font-black text-fg-subtle uppercase tracking-widest flex items-center space-x-2 mb-2 px-1">
+              <ShieldOff className="w-3 h-3 text-fg-subtle" />
               <span>失效点·已停拍 ({deadRisks.length})</span>
             </h3>
-            <p className="text-[10px] text-slate-500 mb-3 leading-relaxed px-1">
+            <p className="text-[10px] text-fg-subtle mb-3 leading-relaxed px-1">
               路线经过这些已停拍的点位，默认不避让。如不放心，可点击右侧盾牌单独避让。
             </p>
             <div className="space-y-2 pr-1 custom-scrollbar text-[11px]">
@@ -703,7 +703,7 @@ const ControlPanel = ({
                     className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer hover:brightness-125 transition ${
                       isForced
                         ? 'bg-amber-500/10 border-amber-500/30'
-                        : 'bg-slate-900/40 border-white/5'
+                        : 'bg-surface-2/40 border-border-soft'
                     }`}
                   >
                     <div className="flex items-center space-x-3 overflow-hidden">
@@ -713,7 +713,7 @@ const ControlPanel = ({
                         alt=""
                         className="w-4 h-5 object-contain shrink-0 opacity-50"
                       />
-                      <span className={`font-semibold truncate pr-2 ${isForced ? 'text-amber-300' : 'text-slate-400'}`}>
+                      <span className={`font-semibold truncate pr-2 ${isForced ? 'text-amber-300' : 'text-fg-muted'}`}>
                         {r.name}
                       </span>
                     </div>
@@ -726,7 +726,7 @@ const ControlPanel = ({
                       className={`shrink-0 cursor-pointer p-2 rounded-xl transition-all ${
                         isForced
                           ? 'bg-amber-500 text-white hover:bg-amber-600'
-                          : 'bg-white/5 text-slate-500 hover:bg-amber-500/30 hover:text-amber-400'
+                          : 'bg-overlay-soft text-fg-subtle hover:bg-amber-500/30 hover:text-amber-400'
                       }`}
                       aria-label={isForced ? '取消避让' : '避让此失效点'}
                       title={isForced ? '取消避让' : '避让此失效点'}

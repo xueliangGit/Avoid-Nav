@@ -60,21 +60,21 @@ export default function SaveRouteDialog({
         aria-hidden
       />
       <div
-        className={`${containerClass} z-[2210] bg-slate-950 border border-white/10 shadow-2xl ${
+        className={`${containerClass} z-[2210] bg-surface border border-border shadow-2xl ${
           variant === 'modal' ? 'rounded-3xl' : ''
         } p-5`}
         role="dialog"
         aria-label="保存路线"
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-black text-white text-sm flex items-center gap-2">
+          <h3 className="font-black text-fg text-sm flex items-center gap-2">
             <Save className="w-4 h-4 text-emerald-400" />
             保存路线
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white"
+            className="p-1.5 rounded-lg text-fg-muted hover:text-fg"
             aria-label="关闭"
           >
             <X className="w-4 h-4" />
@@ -89,7 +89,7 @@ export default function SaveRouteDialog({
             if (e.key === 'Enter') handleConfirm();
           }}
           placeholder="路线名称"
-          className="w-full bg-slate-900 border border-white/10 rounded-2xl py-3 px-4 text-xs text-white font-bold focus:outline-none focus:border-blue-500/40 mb-3"
+          className="w-full bg-surface-2 border border-border rounded-2xl py-3 px-4 text-xs text-fg font-bold focus:outline-none focus:border-blue-500/40 mb-3"
         />
 
         <button
@@ -98,7 +98,7 @@ export default function SaveRouteDialog({
           className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl font-bold text-xs transition mb-4 ${
             favorite
               ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40'
-              : 'bg-white/5 text-slate-300 border border-white/5 hover:bg-white/10'
+              : 'bg-overlay-soft text-fg-2 border border-border-soft hover:bg-overlay'
           }`}
         >
           <Star className={`w-3.5 h-3.5 ${favorite ? 'fill-amber-400' : ''}`} />
@@ -113,7 +113,7 @@ export default function SaveRouteDialog({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 bg-white/5 hover:bg-white/10 text-slate-300 py-3 rounded-2xl font-black text-xs transition"
+            className="flex-1 bg-overlay-soft hover:bg-overlay text-fg-2 py-3 rounded-2xl font-black text-xs transition"
           >
             取消
           </button>
@@ -121,7 +121,7 @@ export default function SaveRouteDialog({
             type="button"
             onClick={handleConfirm}
             disabled={!name.trim()}
-            className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-500 text-white py-3 rounded-2xl font-black text-xs transition"
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-surface-3 disabled:text-fg-subtle text-white py-3 rounded-2xl font-black text-xs transition"
           >
             保存
           </button>

@@ -68,7 +68,7 @@ export default function BottomSheet({ height, onHeightChange, children }: Bottom
   return (
     <div
       ref={sheetRef}
-      className="fixed left-0 right-0 bottom-0 z-[2000] bg-slate-950/95 backdrop-blur-xl border-t border-white/10 rounded-t-3xl shadow-2xl flex flex-col touch-none"
+      className="fixed left-0 right-0 bottom-0 z-[2000] bg-surface/95 backdrop-blur-xl border-t border-border rounded-t-3xl shadow-2xl flex flex-col touch-none"
       style={{
         height: `${clamped}dvh`,
         transition: dragStateRef.current ? 'none' : 'height 0.25s ease',
@@ -83,7 +83,7 @@ export default function BottomSheet({ height, onHeightChange, children }: Bottom
         role="separator"
         aria-orientation="horizontal"
       >
-        <div className="w-10 h-1.5 rounded-full bg-white/30" />
+        <div className="w-10 h-1.5 rounded-full bg-overlay-heavy" />
       </div>
       <div className="flex-1 min-h-0 flex flex-col">{children}</div>
     </div>

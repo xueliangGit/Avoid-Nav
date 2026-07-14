@@ -7,6 +7,7 @@ import { useDeviceLayout } from '@/hooks/useDeviceLayout';
 import { useHistory } from '@/hooks/useHistory';
 import { useApplySavedRoute } from '@/hooks/useApplySavedRoute';
 import { useShareLink } from '@/hooks/useShareLink';
+import { useTheme } from '@/hooks/useTheme';
 import { StorageQuotaError, type SavedRoute } from '@/lib/storage';
 import { extractKeyPoints } from '@/lib/utils/path-keypoints';
 import { buildAmapNavUri, detectPlatform, isWechat } from '@/lib/navigation';
@@ -68,7 +69,9 @@ const MapContainer = () => {
   // 自动风险点避让矩形尺寸（small/medium/large），影响规划时的避让范围
   const [riskAvoidSize, setRiskAvoidSize] = useState<ManualAvoidSize>('medium');
 
-  const { AMap, map, ready, userLocation, error } = useAMap(MAP_CONTAINER_ID, ringFilter);
+  const { theme, isDark, setTheme } = useTheme();
+
+  const { AMap, map, ready, userLocation, error } = useAMap(MAP_CONTAINER_ID, ringFilter, isDark);
 
   const [mode, setMode] = useState<InteractionMode>('none');
   const modeRef = useRef<InteractionMode>(mode);
@@ -688,7 +691,7 @@ const MapContainer = () => {
   const defaultSaveName = start && end ? `${start.name} → ${end.name}` : '我的路线';
 
   return (
-    <div className="relative w-full h-full bg-slate-900 overflow-hidden text-slate-200">
+    <div className="relative w-full h-full bg-surface-2 overflow-hidden text-fg-2">
       {layoutContent}
 
       {mode !== 'none' && (
@@ -716,6 +719,8 @@ const MapContainer = () => {
         onChangeRingFilter={setRingFilter}
         avoidDeadPoints={avoidDeadPoints}
         onChangeAvoidDeadPoints={setAvoidDeadPoints}
+        theme={theme}
+        onChangeTheme={setTheme}
         onClose={() => setSettingsOpen(false)}
       />
 
@@ -747,37 +752,6 @@ const MapContainer = () => {
       />
 
       <WechatGuide open={wechatGuideOpen} onClose={() => setWechatGuideOpen(false)} />
-
-      <style jsx global>{`
-        .amap-sug-result {
-          z-index: 9999 !important;
-          border: none !important;
-          border-radius: 24px !important;
-          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5) !important;
-          padding: 16px !important;
-          background: #0f172a !important;
-          color: white !important;
-        }
-        .auto-item {
-          padding: 14px 20px !important;
-          font-size: 14px !important;
-          color: #f1f5f9 !important;
-          font-weight: 800 !important;
-          cursor: pointer !important;
-          border-radius: 16px !important;
-        }
-        .auto-item:hover {
-          background-color: #1e293b !important;
-          color: #60a5fa !important;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 10px;
-        }
-      `}</style>
     </div>
   );
 };

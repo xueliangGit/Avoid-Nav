@@ -20,7 +20,7 @@ export default function MobileLayout({ controlPanel, debugPanel, mapElement }: P
       {mapElement}
       <BottomSheet height={height} onHeightChange={setHeight}>
         <div className="flex flex-col h-full min-h-0">
-          <div className="flex border-b border-white/5 px-4 shrink-0">
+          <div className="flex border-b border-border-soft px-4 shrink-0">
             <TabButton active={tab === 'control'} onClick={() => setTab('control')}>
               控制
             </TabButton>
@@ -53,7 +53,7 @@ function TabButton({
       className={`px-4 py-3 text-xs font-black transition border-b-2 ${
         active
           ? 'text-blue-400 border-blue-400'
-          : 'text-slate-500 border-transparent hover:text-slate-300'
+          : 'text-fg-subtle border-transparent hover:text-fg-2'
       }`}
     >
       {children}
