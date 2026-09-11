@@ -29,6 +29,7 @@ import type {
   ManualAvoidSize,
   RouteRisk,
 } from '@/lib/types';
+import UpdateBadge from '@/components/shared/UpdateBadge';
 
 export type InteractionMode = 'none' | 'add-waypoint' | 'add-avoid';
 
@@ -89,6 +90,7 @@ interface ControlPanelProps {
   canNavigate: boolean;
   onShareRoute: () => void;
   canShare: boolean;
+  onOpenChangelog?: () => void;
 
   // 布局模式：constrained = 桌面端固定高度容器（内部滚动）；flow = 手机端自然流式（外层滚动）
   variant?: 'constrained' | 'flow';
@@ -146,6 +148,7 @@ const ControlPanel = ({
   canNavigate,
   onShareRoute,
   canShare,
+  onOpenChangelog,
   variant = 'constrained',
 }: ControlPanelProps) => {
   const activeRiskIds = new Set(routeRisks.map((r) => r.id));
@@ -188,10 +191,15 @@ const ControlPanel = ({
         {/* 标题栏 */}
         <div className="flex items-center justify-between mb-6 px-1">
           <div className="flex items-center space-x-3">
-            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
+            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20 shrink-0">
               <Navigation className="text-white w-5 h-5 fill-current" />
             </div>
-            <h2 className="font-black text-fg text-lg">北京避让导航</h2>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="font-black text-fg text-lg leading-tight">北京避让导航</h2>
+                {onOpenChangelog && <UpdateBadge onClick={onOpenChangelog} />}
+              </div>
+            </div>
           </div>
           <div className="flex items-center space-x-2">
             {status && (

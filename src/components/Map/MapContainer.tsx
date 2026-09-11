@@ -30,6 +30,7 @@ import MobileLandscapeLayout from '@/components/layouts/MobileLandscapeLayout';
 import HistoryDrawer from '@/components/History/HistoryDrawer';
 import SettingsDrawer from '@/components/shared/SettingsDrawer';
 import SaveRouteDialog from '@/components/History/SaveRouteDialog';
+import ChangelogModal from '@/components/shared/ChangelogModal';
 
 interface AutoCompleteSelectEvent {
   poi?: {
@@ -89,6 +90,7 @@ const MapContainer = () => {
   // 历史 / 保存 UI 局部状态
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
 
@@ -638,6 +640,7 @@ const MapContainer = () => {
       onStartAddAvoid={handleStartAddAvoid}
       pendingAvoidSize={pendingAvoidSize}
       onOpenSettings={() => setSettingsOpen(true)}
+      onOpenChangelog={() => setChangelogOpen(true)}
       onPlan={handlePlan}
       onToggleIgnoreRisk={handleToggleIgnoreRisk}
       onToggleForceRisk={handleToggleForceRisk}
@@ -752,6 +755,8 @@ const MapContainer = () => {
       />
 
       <WechatGuide open={wechatGuideOpen} onClose={() => setWechatGuideOpen(false)} />
+
+      <ChangelogModal open={changelogOpen} onClose={() => setChangelogOpen(false)} />
     </div>
   );
 };
