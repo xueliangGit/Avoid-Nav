@@ -189,28 +189,32 @@ const ControlPanel = ({
   return (
     <div className={rootClass}>
         {/* 标题栏 */}
-        <div className="flex items-center justify-between mb-6 px-1">
-          <div className="flex items-center space-x-3">
-            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20 shrink-0">
+        <div className="flex items-start justify-between mb-5 px-1">
+          <div className="flex items-start space-x-3 min-w-0">
+            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20 shrink-0 mt-0.5">
               <Navigation className="text-white w-5 h-5 fill-current" />
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-black text-fg text-lg leading-tight">北京避让导航</h2>
-                {onOpenChangelog && <UpdateBadge onClick={onOpenChangelog} />}
-              </div>
+            <div className="flex flex-col gap-1 min-w-0">
+              <h2 className="font-black text-fg text-lg leading-tight tracking-tight">
+                北京避让导航
+              </h2>
+              {onOpenChangelog && (
+                <div className="pt-0.5">
+                  <UpdateBadge onClick={onOpenChangelog} />
+                </div>
+              )}
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5 shrink-0 pt-0.5">
             {status && (
-              <span className="text-[10px] bg-indigo-600 text-white px-2 py-1 rounded-lg animate-pulse font-bold tracking-widest">
+              <span className="text-[10px] bg-indigo-600 text-white px-2 py-1 rounded-lg animate-pulse font-bold tracking-widest shrink-0">
                 {status}
               </span>
             )}
             <button
               type="button"
               onClick={onOpenSettings}
-              className="p-2 rounded-xl bg-overlay-soft hover:bg-overlay text-fg-2 hover:text-fg transition"
+              className="p-2 rounded-xl bg-overlay-soft hover:bg-overlay text-fg-2 hover:text-fg transition shrink-0"
               aria-label="设置"
               title="设置"
             >
@@ -219,7 +223,7 @@ const ControlPanel = ({
             <button
               type="button"
               onClick={onOpenHistory}
-              className="p-2 rounded-xl bg-overlay-soft hover:bg-overlay text-fg-2 hover:text-fg transition"
+              className="p-2 rounded-xl bg-overlay-soft hover:bg-overlay text-fg-2 hover:text-fg transition shrink-0"
               aria-label="历史路线"
               title="历史路线"
             >
@@ -411,30 +415,32 @@ const ControlPanel = ({
           )}
         </div>
 
-        {/* 规划主按钮 */}
-        <button
-          type="button"
-          onClick={onPlan}
-          disabled={planning}
-          className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-blue-900/40 hover:bg-blue-700 disabled:bg-surface-3 disabled:text-fg-subtle disabled:cursor-not-allowed transition-all flex items-center justify-center space-x-2"
-        >
-          {planning ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Search className="w-4 h-4" />
-          )}
-          <span>{planning ? 'AI 深度避让中...' : '规划路线'}</span>
-        </button>
+        {/* 规划与操作按钮区 */}
+        <div className="space-y-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={onPlan}
+            disabled={planning}
+            className="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-black text-sm shadow-xl shadow-blue-900/30 hover:bg-blue-700 disabled:bg-surface-3 disabled:text-fg-subtle disabled:cursor-not-allowed transition-all flex items-center justify-center space-x-2 shrink-0"
+          >
+            {planning ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Search className="w-4 h-4" />
+            )}
+            <span>{planning ? 'AI 深度避让中...' : '规划路线'}</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={onSaveRoute}
-          disabled={!canSave || planning}
-          className="mt-2 w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 py-2.5 rounded-2xl font-black text-xs transition flex items-center justify-center space-x-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <Save className="w-3.5 h-3.5" />
-          <span>保存此路线</span>
-        </button>
+          <button
+            type="button"
+            onClick={onSaveRoute}
+            disabled={!canSave || planning}
+            className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2.5 rounded-2xl font-bold text-xs transition flex items-center justify-center space-x-1.5 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>保存此路线</span>
+          </button>
+        </div>
 
         {/* 路线信息 */}
         {routeInfo && !planning && (

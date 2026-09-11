@@ -17,5 +17,9 @@
   - [`src/components/Map/ControlPanel.tsx`](file:///Users/xuxueliang/work/xxl/myProject/src/components/Map/ControlPanel.tsx)：接收 `onOpenChangelog` 并渲染 `UpdateBadge`。
   - [`src/components/Map/MapContainer.tsx`](file:///Users/xuxueliang/work/xxl/myProject/src/components/Map/MapContainer.tsx)：管理 `changelogOpen` 模态状态并挂载 `ChangelogModal`。
 
-## 3. 验证情况
+## 3. 移动端适配与样式修复
+- **标题栏防挤压重构**：将 `UpdateBadge` 置于主标题正下方，主标题与右侧状态/操作按键各占水平端，杜绝窄屏下与状态按钮挤压重叠；`UpdateBadge` 内部增加 `whitespace-nowrap` 与 `shrink-0`。
+- **按钮重叠根因修复**：将“规划主按钮”与“保存此路线”放入独立的 `space-y-2.5 shrink-0` 容器，明确各元素 block 盒模型与间距，消除 WebKit 对直接 flex 子项 button 的尺寸计算异常，并优化浅色主题下保存按钮的对比度。
+
+## 4. 验证情况
 - 运行 `npm run build`，Turbopack 编译及 TypeScript 静态检查全量通过。
