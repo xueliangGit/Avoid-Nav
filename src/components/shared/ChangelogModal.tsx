@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { X, History, Database, Sparkles, CheckCircle2, Calendar } from 'lucide-react';
+import { X, History, Database, CheckCircle2, Calendar } from 'lucide-react';
 import { CHANGELOG_LIST, getDataMeta } from '@/lib/changelog';
 
 interface ChangelogModalProps {

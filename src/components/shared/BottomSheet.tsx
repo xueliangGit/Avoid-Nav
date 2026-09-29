@@ -1,7 +1,7 @@
 // src/components/shared/BottomSheet.tsx
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 export type SheetHeight = 'peek' | 'half' | 'full';
 

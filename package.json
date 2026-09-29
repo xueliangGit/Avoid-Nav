@@ -11,7 +11,7 @@
     "build": "next build",
     "predev": "node scripts/preprocess.js",
     "start": "next start -p 3200",
-    "lint": "next lint"
+    "lint": "eslint src"
   },
   "dependencies": {
     "@amap/amap-jsapi-loader": "^1.0.1",
@@ -22,13 +22,17 @@
     "react-dom": "^19.2.5"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@next/eslint-plugin-next": "^16.3.6",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/amap-js-api": "^1.4.16",
     "@types/node": "^25.5.2",
     "@types/rbush": "^4.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "eslint": "^10.11.0",
     "tailwindcss": "^4.2.2",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.71.0"
   }
 }

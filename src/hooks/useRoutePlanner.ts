@@ -187,7 +187,6 @@ export function useRoutePlanner(
     clearOverlays();
 
     const master = new Map<string, RouteRisk>();
-    let lastPath: PathPoint[] = [];
     let success = false;
 
     try {
@@ -216,8 +215,6 @@ export function useRoutePlanner(
           appendLog(i + 1, '路线规划失败', 'error');
           break;
         }
-
-        lastPath = points;
 
         const roundRisks = scanPathRisks(points, 0.08, (cam, car, target) => {
           const id = `${cam.lng},${cam.lat}`;
