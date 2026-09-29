@@ -44,8 +44,19 @@ export function getDataMeta(): DataMeta {
 export const CHANGELOG_LIST: ChangelogItem[] = [
   {
     version: '数据更新',
-    date: '2026-09-11',
+    date: '2026-09-29',
     title: '最新进京证与限行监控点位刷新',
+    type: 'data',
+    details: [
+      '监控点位总数刷新至 6,270 处（净增 81 处）。',
+      '新增 81 处最新监控点位（通州区 38 处、顺义区 30 处、开发区 5 处、大兴区 3 处等）。',
+      '校准 2 处原有监控点（通州区司空分署街道路名修正、金榆路南口坐标微调）。',
+    ],
+  },
+  {
+    version: '数据更新',
+    date: '2026-09-11',
+    title: '进京证与限行监控点位历史刷新',
     type: 'data',
     details: [
       '监控点位总数刷新至 6,189 处（净增 75 处）。',
