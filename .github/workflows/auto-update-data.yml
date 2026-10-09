@@ -45,6 +45,7 @@ jobs:
           fi
 
       - name: 提交并推送到仓库
+        id: git_push
         if: steps.check_changes.outputs.has_changes == 'true'
         run: |
           git config --local user.name "github-actions[bot]"
@@ -52,3 +53,12 @@ jobs:
           git add data.json README.md
           git commit -m "chore(data): 自动刷新进京监控点位至 ${{ steps.sync_docs.outputs.count }} 处"
           git push origin main
+          echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: 发送钉钉群机器人通知
+        if: steps.check_changes.outputs.has_changes == 'true'
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        run: |
+          node scripts/notify-dingtalk.js "${{ steps.sync_docs.outputs.count }}" "${{ steps.git_push.outputs.commit_sha }}"
