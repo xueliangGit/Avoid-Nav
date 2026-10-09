@@ -33,9 +33,9 @@ async function sendNotification() {
   const payload = {
     msgtype: 'markdown',
     markdown: {
-      title: '【北京避让导航】监控点位更新提醒',
+      title: '北京探头点位更新提醒',
       text: [
-        '### 🚗 【北京避让导航】数据已自动刷新',
+        '### 🚗 北京探头点位数据已自动刷新',
         `> **有效监控点位**：${COUNT} 处`,
         `> **同步时间**：${now}`,
         COMMIT_SHA ? `> **关联提交**：\`${COMMIT_SHA}\`` : '',
