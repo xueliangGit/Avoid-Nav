@@ -1,0 +1,54 @@
+name: 自动更新监控点位数据
+
+on:
+  schedule:
+    # 每天北京时间 04:00 (UTC 20:00) 与 12:00 (UTC 04:00) 定时执行
+    - cron: '0 20,4 * * *'
+  workflow_dispatch: # 支持手动点击触发
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 抓取并精炼最新数据
+        run: npm run update-data
+
+      - name: 校验数据并同步文档
+        id: sync_docs
+        run: node scripts/validate-and-sync-docs.js
+
+      - name: 检查数据是否有变更
+        id: check_changes
+        run: |
+          if git diff --quiet data.json README.md; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "点位数据无新增或变更，跳过提交。"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "检测到点位数据有更新！"
+          fi
+
+      - name: 提交并推送到仓库
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json README.md
+          git commit -m "chore(data): 自动刷新进京监控点位至 ${{ steps.sync_docs.outputs.count }} 处"
+          git push origin main
