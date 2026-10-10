@@ -49,7 +49,7 @@ export interface UseRoutePlannerResult extends RoutePlanState {
 // 聚类合并后多边形数量大幅下降，可放开探测轮次以覆盖更全
 const MAX_ROUNDS = 8;
 const MAX_AVOID_POLYGONS = 40;
-const ROUND_DELAY_MS = 1200;
+const ROUND_DELAY_MS = 250;
 
 interface PathPoint extends LngLat {}
 
@@ -179,7 +179,7 @@ export function useRoutePlanner(
     if (!AMap || !map || !current.start || !current.end) return false;
 
     setPlanning(true);
-    setStatus('Round 1');
+    setStatus('规避分析 (1/8)');
     setLogs([]);
     setDeadRisks([]);
     appendLog(0, '启动全自动规避引擎...', 'info');
@@ -191,7 +191,7 @@ export function useRoutePlanner(
 
     try {
       for (let i = 0; i < MAX_ROUNDS; i++) {
-        setStatus(`Round ${i + 1}`);
+        setStatus(`规避分析 (${i + 1}/${MAX_ROUNDS})`);
         if (i > 0) {
           await new Promise((res) => setTimeout(res, ROUND_DELAY_MS));
         }
@@ -264,7 +264,7 @@ export function useRoutePlanner(
       const masterList = Array.from(master.values());
       setAvoidedRisks(masterList);
 
-      setStatus('Finalizing...');
+      setStatus('渲染最优路线');
 
       const finalPolygons = buildPolygonsFromRisks(
         masterList,
