@@ -12,6 +12,7 @@ import { useNavigationAction } from '@/hooks/useNavigationAction';
 import { useRouteSharing } from '@/hooks/useRouteSharing';
 import { useRouteStorageActions } from '@/hooks/useRouteStorageActions';
 import { usePlanAction } from '@/hooks/usePlanAction';
+import { useChangelogNotice } from '@/hooks/useChangelogNotice';
 import Toast, { type ToastVariant } from '@/components/shared/Toast';
 import WechatGuide from '@/components/shared/WechatGuide';
 import type { ManualAvoidSize, RingFilter } from '@/lib/types';
@@ -65,6 +66,12 @@ const MapContainer = () => {
   const [pendingAvoidSize, setPendingAvoidSize] = useState<ManualAvoidSize>('medium');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const { hasNewUpdate, markAsSeen } = useChangelogNotice();
+
+  const handleOpenChangelog = useCallback(() => {
+    markAsSeen();
+    setChangelogOpen(true);
+  }, [markAsSeen]);
 
   // 提示信息
   const [toast, setToast] = useState<{ open: boolean; message: string; variant: ToastVariant }>({
@@ -251,7 +258,8 @@ const MapContainer = () => {
       onStartAddAvoid={handleStartAddAvoid}
       pendingAvoidSize={pendingAvoidSize}
       onOpenSettings={() => setSettingsOpen(true)}
-      onOpenChangelog={() => setChangelogOpen(true)}
+      onOpenChangelog={handleOpenChangelog}
+      hasNewUpdate={hasNewUpdate}
       onPlan={handlePlan}
       onToggleIgnoreRisk={handleToggleIgnoreRisk}
       onToggleForceRisk={handleToggleForceRisk}
@@ -304,6 +312,7 @@ const MapContainer = () => {
       routeInfo={routeInfo as RouteInfo | null}
       avoidedRiskCount={avoidedRisks.length}
       unavoidedRiskCount={routeRisks.filter((r) => !ignoredRiskIds.has(r.id)).length}
+      hasNewUpdate={hasNewUpdate}
       canSave={canSave}
       canNavigate={canNavigate}
       canShare={canShare}
@@ -313,7 +322,7 @@ const MapContainer = () => {
       onShareRoute={handleShareRoute}
       onOpenSettings={() => setSettingsOpen(true)}
       onOpenHistory={handleOpenHistory}
-      onOpenChangelog={() => setChangelogOpen(true)}
+      onOpenChangelog={handleOpenChangelog}
     />
   );
 
@@ -352,6 +361,8 @@ const MapContainer = () => {
         onChangeAvoidDeadPoints={setAvoidDeadPoints}
         theme={theme}
         onChangeTheme={setTheme}
+        onOpenChangelog={handleOpenChangelog}
+        hasNewUpdate={hasNewUpdate}
         onClose={() => setSettingsOpen(false)}
       />
 

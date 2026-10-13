@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { X, Settings, Check, Sun, Moon, Monitor } from 'lucide-react';
+import { X, Settings, Check, Sun, Moon, Monitor, FileText, ChevronRight } from 'lucide-react';
 import type { ManualAvoidSize, RingFilter } from '@/lib/types';
 import type { Theme } from '@/lib/theme';
+import { getDataMeta } from '@/lib/changelog';
 
 interface Props {
   open: boolean;
@@ -17,6 +18,8 @@ interface Props {
   theme: Theme;
   onChangeTheme: (t: Theme) => void;
   onClose: () => void;
+  onOpenChangelog?: () => void;
+  hasNewUpdate?: boolean;
 }
 
 const SIZE_LABELS: Record<ManualAvoidSize, { label: string; desc: string }> = {
@@ -43,7 +46,10 @@ export default function SettingsDrawer({
   theme,
   onChangeTheme,
   onClose,
+  onOpenChangelog,
+  hasNewUpdate,
 }: Props) {
+  const meta = getDataMeta();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -221,6 +227,41 @@ export default function SettingsDrawer({
               </span>
             </button>
           </section>
+
+          {/* 关于与更新日志 */}
+          {onOpenChangelog && (
+            <section className="border-t border-border-soft pt-4">
+              <h4 className="text-[10px] font-black text-fg-subtle uppercase tracking-widest mb-3">
+                点位数据与更新
+              </h4>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenChangelog();
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-border-soft bg-overlay-soft hover:bg-overlay text-left transition group"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-fg">更新日志与点位说明</span>
+                      {hasNewUpdate && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 ring-2 ring-red-400/30 animate-pulse" />
+                      )}
+                    </div>
+                    <span className="text-[10px] text-fg-muted mt-0.5 truncate">
+                      已收录 {meta.pointCount.toLocaleString()} 处点位 · 更新于 {meta.formattedDate}
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-fg-subtle group-hover:text-fg group-hover:translate-x-0.5 transition shrink-0" />
+              </button>
+            </section>
+          )}
         </div>
       </div>
     </>

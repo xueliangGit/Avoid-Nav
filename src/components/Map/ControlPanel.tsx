@@ -75,6 +75,7 @@ interface ControlPanelProps {
   onShareRoute: () => void;
   canShare: boolean;
   onOpenChangelog?: () => void;
+  hasNewUpdate?: boolean;
 
   // 布局模式：constrained = 桌面端固定高度容器（内部滚动）；flow = 手机端自然流式（外层滚动）
   variant?: 'constrained' | 'flow';
@@ -118,6 +119,7 @@ const ControlPanel = ({
   onShareRoute,
   canShare,
   onOpenChangelog,
+  hasNewUpdate = false,
   variant = 'constrained',
 }: ControlPanelProps) => {
   const isFlow = variant === 'flow';
@@ -153,11 +155,14 @@ const ControlPanel = ({
           <button
             type="button"
             onClick={onOpenSettings}
-            className="p-2 rounded-xl bg-overlay-soft hover:bg-overlay text-fg-2 hover:text-fg transition shrink-0"
+            className="relative p-2 rounded-xl bg-overlay-soft hover:bg-overlay text-fg-2 hover:text-fg transition shrink-0"
             aria-label="设置"
             title="设置"
           >
             <Settings className="w-4 h-4" />
+            {hasNewUpdate && (
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-surface animate-pulse" />
+            )}
           </button>
           <button
             type="button"

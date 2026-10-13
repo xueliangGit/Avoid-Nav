@@ -28,6 +28,7 @@ interface Props {
   onOpenSettings: () => void;
   onOpenHistory: () => void;
   onOpenChangelog?: () => void;
+  hasNewUpdate?: boolean;
 }
 
 export default function MobileLayout({
@@ -51,6 +52,7 @@ export default function MobileLayout({
   onOpenSettings,
   onOpenHistory,
   onOpenChangelog,
+  hasNewUpdate = false,
 }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<'control' | 'debug'>('control');
@@ -76,6 +78,7 @@ export default function MobileLayout({
         end={end}
         planning={planning}
         status={status}
+        hasNewUpdate={hasNewUpdate}
         onOpenPlannerModal={handleOpenPlanner}
         onOpenSettings={onOpenSettings}
         onOpenHistory={onOpenHistory}

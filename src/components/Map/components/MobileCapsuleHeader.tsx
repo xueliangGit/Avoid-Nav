@@ -8,6 +8,7 @@ interface MobileCapsuleHeaderProps {
   end: PlaceItem | null;
   planning: boolean;
   status: string | null;
+  hasNewUpdate?: boolean;
   onOpenPlannerModal: () => void;
   onOpenSettings: () => void;
   onOpenHistory: () => void;
@@ -19,6 +20,7 @@ export default function MobileCapsuleHeader({
   end,
   planning,
   status,
+  hasNewUpdate = false,
   onOpenPlannerModal,
   onOpenSettings,
   onOpenHistory,
@@ -70,11 +72,14 @@ export default function MobileCapsuleHeader({
           <button
             type="button"
             onClick={onOpenSettings}
-            className="p-2 text-fg-2 hover:text-fg hover:bg-overlay rounded-xl transition"
+            className="relative p-2 text-fg-2 hover:text-fg hover:bg-overlay rounded-xl transition"
             aria-label="设置"
             title="设置"
           >
             <Settings className="w-4 h-4" />
+            {hasNewUpdate && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-surface animate-pulse" />
+            )}
           </button>
           <button
             type="button"
