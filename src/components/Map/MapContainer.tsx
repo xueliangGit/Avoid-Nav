@@ -303,6 +303,7 @@ const MapContainer = () => {
       status={status}
       routeInfo={routeInfo as RouteInfo | null}
       avoidedRiskCount={avoidedRisks.length}
+      unavoidedRiskCount={routeRisks.filter((r) => !ignoredRiskIds.has(r.id)).length}
       canSave={canSave}
       canNavigate={canNavigate}
       canShare={canShare}

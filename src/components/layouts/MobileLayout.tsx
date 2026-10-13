@@ -17,6 +17,7 @@ interface Props {
   status: string | null;
   routeInfo: RouteInfo | null;
   avoidedRiskCount: number;
+  unavoidedRiskCount?: number;
   canSave: boolean;
   canNavigate: boolean;
   canShare: boolean;
@@ -39,6 +40,7 @@ export default function MobileLayout({
   status,
   routeInfo,
   avoidedRiskCount,
+  unavoidedRiskCount = 0,
   canSave,
   canNavigate,
   canShare,
@@ -90,6 +92,7 @@ export default function MobileLayout({
           canNavigate={canNavigate}
           canShare={canShare}
           avoidedRiskCount={avoidedRiskCount}
+          unavoidedRiskCount={unavoidedRiskCount}
           onStartNavigation={onStartNavigation}
           onSaveRoute={onSaveRoute}
           onShareRoute={onShareRoute}

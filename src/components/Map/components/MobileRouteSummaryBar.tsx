@@ -10,6 +10,7 @@ interface MobileRouteSummaryBarProps {
   canNavigate: boolean;
   canShare: boolean;
   avoidedRiskCount: number;
+  unavoidedRiskCount?: number;
   onStartNavigation: () => void;
   onSaveRoute: () => void;
   onShareRoute: () => void;
@@ -38,6 +39,7 @@ export default function MobileRouteSummaryBar({
   canNavigate,
   canShare,
   avoidedRiskCount,
+  unavoidedRiskCount = 0,
   onStartNavigation,
   onSaveRoute,
   onShareRoute,
@@ -66,14 +68,24 @@ export default function MobileRouteSummaryBar({
                   {routeInfo ? formatDistance(routeInfo.distance) : ''}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                {avoidedRiskCount > 0 ? (
+              <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
+                {unavoidedRiskCount > 0 ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-black text-red-600 dark:text-red-400 bg-red-500/15 border border-red-500/30 px-1.5 py-0.5 rounded-md animate-pulse">
+                    <ShieldAlert className="w-3 h-3 shrink-0" />
+                    未避开 {unavoidedRiskCount} 处监控
+                  </span>
+                ) : avoidedRiskCount > 0 ? (
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
-                    <ShieldAlert className="w-3 h-3" />
+                    <ShieldAlert className="w-3 h-3 shrink-0" />
                     已避开 {avoidedRiskCount} 处监控
                   </span>
                 ) : (
                   <span className="text-[11px] text-fg-subtle">无风险点干扰</span>
+                )}
+                {unavoidedRiskCount > 0 && avoidedRiskCount > 0 && (
+                  <span className="inline-flex items-center text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80">
+                    (已绕开 {avoidedRiskCount} 处)
+                  </span>
                 )}
                 <span className="text-[11px] text-blue-500 flex items-center group-hover:underline">
                   详情 <ChevronUp className="w-3 h-3 ml-0.5" />
