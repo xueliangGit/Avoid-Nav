@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import UpdateBadge from '@/components/shared/UpdateBadge';
 
 interface MobileModalProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface MobileModalProps {
   tab?: 'control' | 'debug';
   onTabChange?: (t: 'control' | 'debug') => void;
   hasDebugTab?: boolean;
+  onOpenChangelog?: () => void;
 }
 
 export default function MobilePlannerModal({
@@ -21,6 +23,7 @@ export default function MobilePlannerModal({
   tab = 'control',
   onTabChange,
   hasDebugTab = false,
+  onOpenChangelog,
 }: MobileModalProps) {
   return (
     <div
@@ -41,8 +44,14 @@ export default function MobilePlannerModal({
       >
         {/* 顶部标题与关闭 */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border-soft shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <span className="font-black text-fg text-base">{title}</span>
+            {onOpenChangelog && (
+              <UpdateBadge onClick={onOpenChangelog} className="scale-90 origin-left" />
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
             {hasDebugTab && onTabChange && (
               <div className="flex bg-surface-2 p-0.5 rounded-xl border border-border-soft">
                 <button

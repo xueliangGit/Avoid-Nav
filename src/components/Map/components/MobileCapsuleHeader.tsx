@@ -2,7 +2,6 @@
 
 import { Settings, History, Loader2, Layers } from 'lucide-react';
 import type { PlaceItem } from '@/lib/types';
-import UpdateBadge from '@/components/shared/UpdateBadge';
 
 interface MobileCapsuleHeaderProps {
   start: PlaceItem | null;
@@ -12,7 +11,6 @@ interface MobileCapsuleHeaderProps {
   onOpenPlannerModal: () => void;
   onOpenSettings: () => void;
   onOpenHistory: () => void;
-  onOpenChangelog?: () => void;
   onOpenDebug?: () => void;
 }
 
@@ -24,7 +22,6 @@ export default function MobileCapsuleHeader({
   onOpenPlannerModal,
   onOpenSettings,
   onOpenHistory,
-  onOpenChangelog,
   onOpenDebug,
 }: MobileCapsuleHeaderProps) {
   const startName = start?.name || '设置起点';
@@ -102,17 +99,14 @@ export default function MobileCapsuleHeader({
         </div>
       </div>
 
-      {/* 状态徽标与点位信息 */}
-      <div className="flex items-center justify-between px-1 pointer-events-auto">
-        <div className="flex items-center gap-2">
-          {onOpenChangelog && <UpdateBadge onClick={onOpenChangelog} />}
-          {status && (
-            <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-lg font-bold tracking-wider animate-pulse shadow-md">
-              {status}
-            </span>
-          )}
+      {/* 算路进行时的状态徽标 */}
+      {status && (
+        <div className="flex items-center px-1 pointer-events-auto">
+          <span className="text-[10px] bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg font-bold tracking-wider animate-pulse shadow-md">
+            {status}
+          </span>
         </div>
-      </div>
+      )}
     </div>
   );
 }

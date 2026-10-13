@@ -79,7 +79,6 @@ export default function MobileLayout({
         onOpenPlannerModal={handleOpenPlanner}
         onOpenSettings={onOpenSettings}
         onOpenHistory={onOpenHistory}
-        onOpenChangelog={onOpenChangelog}
         onOpenDebug={handleOpenDebug}
       />
 
@@ -108,6 +107,7 @@ export default function MobileLayout({
         tab={modalTab}
         onTabChange={setModalTab}
         hasDebugTab={true}
+        onOpenChangelog={onOpenChangelog}
       >
         {modalTab === 'control' ? controlPanel : debugPanel}
       </MobilePlannerModal>
