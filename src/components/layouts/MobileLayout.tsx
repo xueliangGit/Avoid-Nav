@@ -1,62 +1,113 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import BottomSheet, { type SheetHeight } from '@/components/shared/BottomSheet';
+import type { PlaceItem } from '@/lib/types';
+import type { RouteInfo } from '@/components/Map/ControlPanel';
+import MobileCapsuleHeader from '@/components/Map/components/MobileCapsuleHeader';
+import MobileRouteSummaryBar from '@/components/Map/components/MobileRouteSummaryBar';
+import MobilePlannerModal from '@/components/Map/components/MobilePlannerModal';
 
 interface Props {
   controlPanel: ReactNode;
   debugPanel: ReactNode;
   mapElement: ReactNode;
+  start: PlaceItem | null;
+  end: PlaceItem | null;
+  planning: boolean;
+  status: string | null;
+  routeInfo: RouteInfo | null;
+  avoidedRiskCount: number;
+  canSave: boolean;
+  canNavigate: boolean;
+  canShare: boolean;
+  onPlan: () => void | Promise<void>;
+  onStartNavigation: () => void;
+  onSaveRoute: () => void;
+  onShareRoute: () => void;
+  onOpenSettings: () => void;
+  onOpenHistory: () => void;
+  onOpenChangelog?: () => void;
 }
 
-type TabKey = 'control' | 'debug';
+export default function MobileLayout({
+  controlPanel,
+  debugPanel,
+  mapElement,
+  start,
+  end,
+  planning,
+  status,
+  routeInfo,
+  avoidedRiskCount,
+  canSave,
+  canNavigate,
+  canShare,
+  onPlan,
+  onStartNavigation,
+  onSaveRoute,
+  onShareRoute,
+  onOpenSettings,
+  onOpenHistory,
+  onOpenChangelog,
+}: Props) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTab, setModalTab] = useState<'control' | 'debug'>('control');
 
-export default function MobileLayout({ controlPanel, debugPanel, mapElement }: Props) {
-  const [height, setHeight] = useState<SheetHeight>('half');
-  const [tab, setTab] = useState<TabKey>('control');
+  const handleOpenPlanner = () => {
+    setModalTab('control');
+    setModalOpen(true);
+  };
+
+  const handleOpenDebug = () => {
+    setModalTab('debug');
+    setModalOpen(true);
+  };
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full overflow-hidden">
+      {/* 1. 地图背景（100% 全屏可视） */}
       {mapElement}
-      <BottomSheet height={height} onHeightChange={setHeight}>
-        <div className="flex flex-col h-full min-h-0">
-          <div className="flex border-b border-border-soft px-4 shrink-0">
-            <TabButton active={tab === 'control'} onClick={() => setTab('control')}>
-              控制
-            </TabButton>
-            <TabButton active={tab === 'debug'} onClick={() => setTab('debug')}>
-              日志
-            </TabButton>
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar overscroll-contain p-3 touch-pan-y">
-            {tab === 'control' ? controlPanel : debugPanel}
-          </div>
-        </div>
-      </BottomSheet>
-    </div>
-  );
-}
 
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-4 py-3 text-xs font-black transition border-b-2 ${
-        active
-          ? 'text-blue-400 border-blue-400'
-          : 'text-fg-subtle border-transparent hover:text-fg-2'
-      }`}
-    >
-      {children}
-    </button>
+      {/* 2. 顶部轻量悬浮胶囊栏 */}
+      <MobileCapsuleHeader
+        start={start}
+        end={end}
+        planning={planning}
+        status={status}
+        onOpenPlannerModal={handleOpenPlanner}
+        onOpenSettings={onOpenSettings}
+        onOpenHistory={onOpenHistory}
+        onOpenChangelog={onOpenChangelog}
+        onOpenDebug={handleOpenDebug}
+      />
+
+      {/* 3. 规划完成后底部轻量摘要浮条（仅在未打开全屏编排面板时呈现） */}
+      {!modalOpen && (
+        <MobileRouteSummaryBar
+          routeInfo={routeInfo}
+          planning={planning}
+          canSave={canSave}
+          canNavigate={canNavigate}
+          canShare={canShare}
+          avoidedRiskCount={avoidedRiskCount}
+          onStartNavigation={onStartNavigation}
+          onSaveRoute={onSaveRoute}
+          onShareRoute={onShareRoute}
+          onExpandDetails={handleOpenPlanner}
+        />
+      )}
+
+      {/* 4. 路线编排与详情弹出层 */}
+      <MobilePlannerModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={modalTab === 'control' ? '路线编排与避让' : '系统运行日志'}
+        tab={modalTab}
+        onTabChange={setModalTab}
+        hasDebugTab={true}
+      >
+        {modalTab === 'control' ? controlPanel : debugPanel}
+      </MobilePlannerModal>
+    </div>
   );
 }

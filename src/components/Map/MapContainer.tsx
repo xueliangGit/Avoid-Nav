@@ -297,6 +297,22 @@ const MapContainer = () => {
       controlPanel={controlPanelNode}
       debugPanel={debugPanelNode}
       mapElement={mapElement}
+      start={start}
+      end={end}
+      planning={planning}
+      status={status}
+      routeInfo={routeInfo as RouteInfo | null}
+      avoidedRiskCount={avoidedRisks.length}
+      canSave={canSave}
+      canNavigate={canNavigate}
+      canShare={canShare}
+      onPlan={handlePlan}
+      onStartNavigation={handleStartNavigation}
+      onSaveRoute={handleOpenSave}
+      onShareRoute={handleShareRoute}
+      onOpenSettings={() => setSettingsOpen(true)}
+      onOpenHistory={handleOpenHistory}
+      onOpenChangelog={() => setChangelogOpen(true)}
     />
   );
 
