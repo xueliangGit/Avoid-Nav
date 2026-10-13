@@ -151,7 +151,14 @@ export default function BottomSheet({ height, onHeightChange, children }: Bottom
       >
         <div className="w-12 h-1.5 rounded-full bg-overlay-heavy/80 hover:bg-overlay-heavy transition-colors" />
       </div>
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">{children}</div>
+      <div
+        className="flex-1 min-h-0 flex flex-col overflow-hidden"
+        style={{
+          maxHeight: `calc(${HEIGHT_VH[height]}dvh - 28px)`,
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
