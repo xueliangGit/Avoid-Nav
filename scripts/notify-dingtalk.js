@@ -1,6 +1,8 @@
 // 钉钉群机器人消息通知脚本
 const https = require('https');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { URL } = require('url');
 
 const WEBHOOK_URL = process.env.DINGTALK_WEBHOOK;
@@ -19,6 +21,17 @@ function getSignedUrl(webhook, secret) {
   const encodedSign = encodeURIComponent(sign);
   const delimiter = webhook.includes('?') ? '&' : '?';
   return `${webhook}${delimiter}timestamp=${timestamp}&sign=${encodedSign}`;
+}
+
+function loadNewPoints() {
+  const newPointsFile = path.join(__dirname, '..', '.new-points.json');
+  if (!fs.existsSync(newPointsFile)) return [];
+  try {
+    const list = JSON.parse(fs.readFileSync(newPointsFile, 'utf-8'));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
 }
 
 async function sendNotification() {
@@ -47,6 +60,17 @@ async function sendNotification() {
   console.log(`  - 签名计算完成，目标请求路径: ${finalUrl.split('?')[0]}?***`);
   const now = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
 
+  const newPoints = loadNewPoints();
+  let pointsMarkdown = '';
+  if (newPoints.length > 0) {
+    const names = newPoints.map((p) => p.name).filter(Boolean);
+    const topNames = names.slice(0, 10);
+    const listText = topNames.map((n, i) => `${i + 1}. ${n}`).join('\n');
+    pointsMarkdown = `> **本次新增点位明细 (${names.length}处)**：\n\n${listText}${
+      names.length > 10 ? `\n... 等共 ${names.length} 处点位` : ''
+    }`;
+  }
+
   const payload = {
     msgtype: 'markdown',
     markdown: {
@@ -54,6 +78,7 @@ async function sendNotification() {
       text: [
         '### 🚗 北京探头点位数据已自动刷新',
         `> **有效监控点位**：${COUNT} 处`,
+        pointsMarkdown,
         `> **同步时间**：${now}`,
         COMMIT_SHA ? `> **关联提交**：\`${COMMIT_SHA}\`` : '',
         '> **部署状态**：已自动推送到 `main` 分支并触发线上构建',
