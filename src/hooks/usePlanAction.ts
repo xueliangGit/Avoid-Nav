@@ -13,6 +13,7 @@ interface UsePlanActionProps {
   setStart: (item: PlaceItem | null) => void;
   setEnd: (item: PlaceItem | null) => void;
   showToast: (msg: string, variant?: 'success' | 'error') => void;
+  onSuccess?: () => void;
 }
 
 export function usePlanAction({
@@ -23,6 +24,7 @@ export function usePlanAction({
   setStart,
   setEnd,
   showToast,
+  onSuccess,
 }: UsePlanActionProps) {
   const handlePlan = useCallback(async () => {
     if (!AMap) return;
@@ -79,8 +81,12 @@ export function usePlanAction({
     }
 
     const ok = await plan({ start: s, end: e });
-    if (!ok) showToast('规划失败，请检查起终点或稍后重试', 'error');
-  }, [AMap, start, end, plan, setStart, setEnd, showToast]);
+    if (!ok) {
+      showToast('规划失败，请检查起终点或稍后重试', 'error');
+    } else {
+      onSuccess?.();
+    }
+  }, [AMap, start, end, plan, setStart, setEnd, showToast, onSuccess]);
 
   return { handlePlan };
 }

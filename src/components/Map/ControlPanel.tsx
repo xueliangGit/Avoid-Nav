@@ -208,6 +208,8 @@ const ControlPanel = ({
       <RouteActionBar
         planning={planning}
         routeInfo={routeInfo}
+        avoidedRiskCount={avoidedRisks.length}
+        unavoidedRiskCount={routeRisks.filter((r) => !ignoredRiskIds.has(r.id)).length}
         canSave={canSave}
         canNavigate={canNavigate}
         canShare={canShare}

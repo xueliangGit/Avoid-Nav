@@ -2,10 +2,13 @@
 
 import { Navigation, Loader2, Search, Save, Share2 } from 'lucide-react';
 import type { RouteInfo } from '../ControlPanel';
+import RouteResultSummary from './RouteResultSummary';
 
 interface RouteActionBarProps {
   planning: boolean;
   routeInfo: RouteInfo | null;
+  avoidedRiskCount?: number;
+  unavoidedRiskCount?: number;
   canSave: boolean;
   canNavigate: boolean;
   canShare: boolean;
@@ -33,6 +36,8 @@ const formatDuration = (seconds: number): string => {
 export default function RouteActionBar({
   planning,
   routeInfo,
+  avoidedRiskCount = 0,
+  unavoidedRiskCount = 0,
   canSave,
   canNavigate,
   canShare,
@@ -70,26 +75,13 @@ export default function RouteActionBar({
         </button>
       </div>
 
-      {/* 路线信息 */}
+      {/* 路线规划结果与避让统计卡片 */}
       {routeInfo && !planning && (
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="bg-surface-2/60 border border-border-soft rounded-2xl p-3 text-center">
-            <div className="text-[10px] uppercase tracking-widest text-fg-subtle font-bold mb-1">
-              距离
-            </div>
-            <div className="text-base font-black text-fg">
-              {formatDistance(routeInfo.distance)}
-            </div>
-          </div>
-          <div className="bg-surface-2/60 border border-border-soft rounded-2xl p-3 text-center">
-            <div className="text-[10px] uppercase tracking-widest text-fg-subtle font-bold mb-1">
-              预计时间
-            </div>
-            <div className="text-base font-black text-fg">
-              {formatDuration(routeInfo.duration)}
-            </div>
-          </div>
-        </div>
+        <RouteResultSummary
+          routeInfo={routeInfo}
+          avoidedRiskCount={avoidedRiskCount}
+          unavoidedRiskCount={unavoidedRiskCount}
+        />
       )}
 
       {/* 开始导航 + 分享（路线规划完成后显示） */}

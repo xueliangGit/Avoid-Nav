@@ -1,6 +1,6 @@
 'use client';
 
-import { Navigation, Save, Share2, ShieldAlert, ChevronUp } from 'lucide-react';
+import { Navigation, Save, Share2, ShieldAlert, ShieldCheck, ChevronUp } from 'lucide-react';
 import type { RouteInfo } from '../ControlPanel';
 
 interface MobileRouteSummaryBarProps {
@@ -49,9 +49,17 @@ export default function MobileRouteSummaryBar({
     return null;
   }
 
+  const hasUnavoided = unavoidedRiskCount > 0;
+
   return (
     <div className="absolute bottom-4 left-3 right-3 z-[1800] pointer-events-auto">
-      <div className="bg-surface/95 backdrop-blur-xl border border-border shadow-2xl rounded-3xl p-3.5 flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div
+        className={`bg-surface/95 backdrop-blur-xl border shadow-2xl rounded-3xl p-3.5 flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-4 duration-300 transition-colors ${
+          hasUnavoided
+            ? 'border-red-500/40 ring-1 ring-red-500/20'
+            : 'border-emerald-500/30'
+        }`}
+      >
         <div className="flex items-center justify-between gap-3">
           {/* 左侧路线数据概要 */}
           <button
@@ -69,25 +77,28 @@ export default function MobileRouteSummaryBar({
                 </span>
               </div>
               <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
-                {unavoidedRiskCount > 0 ? (
+                {hasUnavoided ? (
                   <span className="inline-flex items-center gap-1 text-[11px] font-black text-red-600 dark:text-red-400 bg-red-500/15 border border-red-500/30 px-1.5 py-0.5 rounded-md animate-pulse">
-                    <ShieldAlert className="w-3 h-3 shrink-0" />
+                    <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
                     未避开 {unavoidedRiskCount} 处监控
                   </span>
                 ) : avoidedRiskCount > 0 ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
-                    <ShieldAlert className="w-3 h-3 shrink-0" />
+                  <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                    <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
                     已避开 {avoidedRiskCount} 处监控
                   </span>
                 ) : (
-                  <span className="text-[11px] text-fg-subtle">无风险点干扰</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-fg-muted bg-surface-2 px-1.5 py-0.5 rounded-md">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    无风险点干扰
+                  </span>
                 )}
-                {unavoidedRiskCount > 0 && avoidedRiskCount > 0 && (
-                  <span className="inline-flex items-center text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80">
+                {hasUnavoided && avoidedRiskCount > 0 && (
+                  <span className="inline-flex items-center text-[10px] font-bold text-emerald-600/90 dark:text-emerald-400/90">
                     (已绕开 {avoidedRiskCount} 处)
                   </span>
                 )}
-                <span className="text-[11px] text-blue-500 flex items-center group-hover:underline">
+                <span className="text-[11px] font-semibold text-blue-500 flex items-center group-hover:underline">
                   详情 <ChevronUp className="w-3 h-3 ml-0.5" />
                 </span>
               </div>

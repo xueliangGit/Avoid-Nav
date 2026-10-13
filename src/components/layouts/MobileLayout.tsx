@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { PlaceItem } from '@/lib/types';
 import type { RouteInfo } from '@/components/Map/ControlPanel';
 import MobileCapsuleHeader from '@/components/Map/components/MobileCapsuleHeader';
@@ -56,6 +56,15 @@ export default function MobileLayout({
 }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<'control' | 'debug'>('control');
+  const prevPlanningRef = useRef(planning);
+
+  // 当规划从进行中变为完成且有路线信息时，自动收起弹窗，让用户一眼看到全景路线和底部摘要
+  useEffect(() => {
+    if (prevPlanningRef.current && !planning && routeInfo) {
+      setModalOpen(false);
+    }
+    prevPlanningRef.current = planning;
+  }, [planning, routeInfo]);
 
   const handleOpenPlanner = () => {
     setModalTab('control');

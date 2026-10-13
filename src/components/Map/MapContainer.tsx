@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAMap } from '@/hooks/useAMap';
 import { useRoutePlanner } from '@/hooks/useRoutePlanner';
 import { useDeviceLayout } from '@/hooks/useDeviceLayout';
@@ -207,6 +207,26 @@ const MapContainer = () => {
     setEnd,
     showToast,
   });
+
+  // 规划完成后提供直观明确的结果反馈（成功避开数量 / 未避开风险警示）
+  const prevPlanningRef = useRef(planning);
+  useEffect(() => {
+    if (prevPlanningRef.current && !planning && routeInfo) {
+      const unavoidedCount = routeRisks.filter((r) => !ignoredRiskIds.has(r.id)).length;
+      const avoidedCount = avoidedRisks.length;
+      if (unavoidedCount > 0) {
+        showToast(
+          `⚠️ 规划完成，注意！仍有 ${unavoidedCount} 处监控无法避开`,
+          'error',
+        );
+      } else if (avoidedCount > 0) {
+        showToast(`🎉 路线规划成功！已绕开全部 ${avoidedCount} 处监控`, 'success');
+      } else {
+        showToast('🎉 路线规划成功！全程畅通无冲突监控', 'success');
+      }
+    }
+    prevPlanningRef.current = planning;
+  }, [planning, routeInfo, routeRisks, avoidedRisks, ignoredRiskIds, showToast]);
 
   // 初始化定位默认填入起点
   useEffect(() => {
