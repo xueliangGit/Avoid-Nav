@@ -46,10 +46,10 @@ export interface UseRoutePlannerResult extends RoutePlanState {
   clearLogs: () => void;
 }
 
-// 聚类合并后多边形数量大幅下降，可放开探测轮次以覆盖更全
-const MAX_ROUNDS = 8;
+// 聚类合并后多边形数量大幅下降，平衡规避精度与高德开发者每秒QPS配额
+const MAX_ROUNDS = 5;
 const MAX_AVOID_POLYGONS = 40;
-const ROUND_DELAY_MS = 250;
+const ROUND_DELAY_MS = 800;
 
 interface PathPoint extends LngLat {}
 
@@ -147,6 +147,7 @@ export function useRoutePlanner(
       end: LngLat,
       waypoints: Waypoint[],
       polygons: [number, number][][],
+      attempt = 0,
     ): Promise<PathPoint[]> => {
       return new Promise((resolve) => {
         const driving = new AMap.Driving({ policy: AMap.DrivingPolicy.LEAST_TIME });
@@ -161,12 +162,23 @@ export function useRoutePlanner(
           new AMap.LngLat(start.lng, start.lat),
           new AMap.LngLat(end.lng, end.lat),
           opts,
-          (s: string, r: any) => {
-            if (s !== 'complete' || !r?.routes?.[0]) {
-              resolve([]);
+          async (s: string, r: any) => {
+            if (s === 'complete' && r?.routes?.[0]) {
+              resolve(collectPathPoints(r.routes[0]));
               return;
             }
-            resolve(collectPathPoints(r.routes[0]));
+            // 针对高德 QPS 限制 (10021 CUQPS_HAS_EXCEEDED_THE_LIMIT) 指数退避重试
+            const isQpsLimit =
+              r?.info === 'CUQPS_HAS_EXCEEDED_THE_LIMIT' ||
+              r?.infocode === '10021' ||
+              (typeof r === 'string' && r.includes('10021'));
+            if (isQpsLimit && attempt < 3) {
+              await new Promise((res) => setTimeout(res, 800 * (attempt + 1)));
+              const retryPoints = await probeRoute(start, end, waypoints, polygons, attempt + 1);
+              resolve(retryPoints);
+              return;
+            }
+            resolve([]);
           },
         );
       });
@@ -179,7 +191,7 @@ export function useRoutePlanner(
     if (!AMap || !map || !current.start || !current.end) return false;
 
     setPlanning(true);
-    setStatus('规避分析 (1/8)');
+    setStatus(`规避分析 (1/${MAX_ROUNDS})`);
     setLogs([]);
     setDeadRisks([]);
     appendLog(0, '启动全自动规避引擎...', 'info');

@@ -42,7 +42,7 @@ export default function MobileLayout({
   canSave,
   canNavigate,
   canShare,
-  onPlan,
+  onPlan: _onPlan,
   onStartNavigation,
   onSaveRoute,
   onShareRoute,
