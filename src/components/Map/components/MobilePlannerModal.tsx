@@ -22,15 +22,23 @@ export default function MobilePlannerModal({
   onTabChange,
   hasDebugTab = false,
 }: MobileModalProps) {
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-[2100] flex flex-col justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      className={`fixed inset-0 z-[2100] flex flex-col justify-end transition-all duration-300 ${
+        open
+          ? 'opacity-100 pointer-events-auto bg-black/60 backdrop-blur-sm'
+          : 'opacity-0 pointer-events-none bg-black/0'
+      }`}
+    >
       {/* 遮罩点击关闭 */}
       <div className="flex-1 w-full" onClick={onClose} aria-hidden="true" />
 
       {/* 弹出层内容容器 */}
-      <div className="w-full max-h-[85dvh] bg-surface rounded-t-3xl border-t border-border shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-200 overflow-hidden">
+      <div
+        className={`w-full max-h-[85dvh] bg-surface rounded-t-3xl border-t border-border shadow-2xl flex flex-col overflow-hidden transition-transform duration-300 ease-out ${
+          open ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
         {/* 顶部标题与关闭 */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border-soft shrink-0">
           <div className="flex items-center gap-3">
