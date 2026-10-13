@@ -39,18 +39,20 @@ export default function MobileCapsuleHeader({
           onClick={onOpenPlannerModal}
           className="flex-1 bg-surface/90 hover:bg-surface backdrop-blur-xl border border-border shadow-xl rounded-2xl py-2.5 px-3.5 flex items-center gap-3 transition text-left group"
         >
-          <div className="flex flex-col items-center justify-center shrink-0 w-3.5 py-0.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="w-0.5 h-3 bg-border my-0.5" />
-            <span className="w-2 h-2 rounded-full bg-blue-600" />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="text-[11px] text-fg-muted font-medium truncate leading-tight">
-              {startName}
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5 py-0.5">
+            {/* 起点行：绿点与文字居中对齐 */}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-[11px] text-fg-muted font-medium truncate leading-none">
+                {startName}
+              </span>
             </div>
-            <div className={`text-xs font-bold truncate leading-tight mt-0.5 ${end ? 'text-fg' : 'text-fg-subtle'}`}>
-              {endName}
+            {/* 终点行：蓝点与文字居中对齐 */}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+              <span className={`text-xs font-bold truncate leading-none ${end ? 'text-fg' : 'text-fg-subtle'}`}>
+                {endName}
+              </span>
             </div>
           </div>
 
