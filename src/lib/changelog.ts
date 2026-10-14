@@ -43,6 +43,16 @@ export function getDataMeta(): DataMeta {
 
 export const CHANGELOG_LIST: ChangelogItem[] = [
   {
+    version: '数据更新',
+    date: '2026-10-13',
+    title: '最新进京证与限行监控点位刷新',
+    type: 'data',
+    details: [
+      '监控点位总数刷新至 6,294 处（净增 6 处）。',
+      '增补进京主要干道与六环周边最新管控监控点位。',
+    ],
+  },
+  {
     version: 'v1.3.0',
     date: '2026-10-10',
     title: '规避算路极速响应与抽屉手势丝滑重构',

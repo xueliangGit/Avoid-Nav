@@ -40,3 +40,4 @@ next-env.d.ts
 /.codegraph
 /.worktrees
 Snipaste_*.png
+/.new-points.json

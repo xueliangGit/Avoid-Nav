@@ -17,8 +17,26 @@ function getBeijingDateStr() {
   return `${year}-${month}-${day}`;
 }
 
-function syncChangelog(count, formattedCount) {
-  if (!fs.existsSync(CHANGELOG_FILE)) return;
+const { execSync } = require('child_process');
+
+function getDiffPoints(currentList) {
+  try {
+    const oldRaw = execSync('git show HEAD:data.json', {
+      encoding: 'utf-8',
+      maxBuffer: 15 * 1024 * 1024,
+      stdio: ['pipe', 'pipe', 'ignore'],
+    });
+    const oldList = JSON.parse(oldRaw);
+    if (!Array.isArray(oldList)) return [];
+    const oldNames = new Set(oldList.map((p) => p.name));
+    return currentList.filter((p) => p.name && !oldNames.has(p.name));
+  } catch {
+    return [];
+  }
+}
+
+function syncChangelog(count, formattedCount, currentList) {
+  if (!fs.existsSync(CHANGELOG_FILE)) return [];
   let content = fs.readFileSync(CHANGELOG_FILE, 'utf-8');
 
   // 正则寻找最近一条数据更新记录的点位数
@@ -31,7 +49,7 @@ function syncChangelog(count, formattedCount) {
   // 若最新记录的点位数与当前一致，说明已记录，跳过
   if (prevCount === count) {
     console.log(`ℹ️ changelog.ts 中最新记录已为 ${formattedCount} 处，无需重复写入`);
-    return;
+    return [];
   }
 
   const todayStr = getBeijingDateStr();
@@ -42,14 +60,34 @@ function syncChangelog(count, formattedCount) {
     else if (diff < 0) diffStr = `（净减 ${Math.abs(diff)} 处）`;
   }
 
+  // 提取本次新增点位列表
+  const newPoints = getDiffPoints(currentList);
+  const details = [`'监控点位总数刷新至 ${formattedCount} 处${diffStr}。'`];
+
+  if (newPoints.length > 0) {
+    const names = newPoints.map((p) => p.name);
+    // 前 8 个点位详细列出，过多则折叠提示
+    const previewNames = names.slice(0, 8);
+    const pointListStr = previewNames.map((n) => `“${n}”`).join('、');
+    if (names.length > 8) {
+      details.push(`'新增点位：${pointListStr} 等共 ${names.length} 处。'`);
+    } else {
+      details.push(`'新增点位：${pointListStr}。'`);
+    }
+    details.push(`'增补进京主要干道与六环周边最新管控监控点位。'`);
+  } else {
+    details.push(`'增补进京主要干道与六环周边最新管控监控点位。'`);
+  }
+
+  const formattedDetails = details.map((d) => `      ${d},`).join('\n');
+
   const newItem = `  {
     version: '数据更新',
     date: '${todayStr}',
     title: '最新进京证与限行监控点位刷新',
     type: 'data',
     details: [
-      '监控点位总数刷新至 ${formattedCount} 处${diffStr}。',
-      '增补进京主要干道与六环周边最新管控监控点位。',
+${formattedDetails}
     ],
   },
 `;
@@ -58,8 +96,10 @@ function syncChangelog(count, formattedCount) {
   if (content.includes(marker)) {
     content = content.replace(marker, marker + newItem);
     fs.writeFileSync(CHANGELOG_FILE, content, 'utf-8');
-    console.log(`✅ 已自动向 changelog.ts 插入 ${formattedCount} 处数据更新日志`);
+    console.log(`✅ 已自动向 changelog.ts 插入 ${formattedCount} 处详细数据更新日志`);
   }
+
+  return newPoints;
 }
 
 function main() {
@@ -96,11 +136,18 @@ function main() {
     }
   }
 
-  syncChangelog(count, formattedCount);
+  const newPoints = syncChangelog(count, formattedCount, list);
+
+  // 持久化保存本次新增的点位清单供钉钉通知使用
+  const newPointsFile = path.join(__dirname, '..', '.new-points.json');
+  fs.writeFileSync(newPointsFile, JSON.stringify(newPoints || []), 'utf-8');
 
   // 若处于 GitHub Actions 环境，向环境输出变量
   if (process.env.GITHUB_OUTPUT) {
-    fs.appendFileSync(process.env.GITHUB_OUTPUT, `count=${formattedCount}\nraw_count=${count}\n`);
+    fs.appendFileSync(
+      process.env.GITHUB_OUTPUT,
+      `count=${formattedCount}\nraw_count=${count}\nnew_count=${(newPoints || []).length}\n`,
+    );
   }
 }
 
