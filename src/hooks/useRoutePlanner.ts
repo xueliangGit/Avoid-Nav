@@ -46,8 +46,8 @@ export interface UseRoutePlannerResult extends RoutePlanState {
   clearLogs: () => void;
 }
 
-// 聚类合并后多边形数量大幅下降，平衡规避精度与高德开发者每秒QPS配额
-const MAX_ROUNDS = 5;
+// 聚类合并后多边形数量大幅下降，放宽探测轮次至 8 轮以提供深度规避
+const MAX_ROUNDS = 8;
 const MAX_AVOID_POLYGONS = 40;
 const ROUND_DELAY_MS = 800;
 
