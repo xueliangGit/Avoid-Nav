@@ -23,15 +23,20 @@ export default function ChangelogModal({ open, onClose }: ChangelogModalProps) {
 
   if (!open) return null;
 
-  const fullDateStr = meta.updatedAt
-    ? new Date(meta.updatedAt).toLocaleString('zh-CN', {
+  const updateDate = meta.updatedAt ? new Date(meta.updatedAt) : null;
+  const datePart = updateDate
+    ? updateDate.toLocaleDateString('zh-CN', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
+      })
+    : '未知';
+  const timePart = updateDate
+    ? updateDate.toLocaleTimeString('zh-CN', {
         hour: '2-digit',
         minute: '2-digit',
       })
-    : '未知';
+    : '';
 
   return (
     <>
@@ -82,10 +87,15 @@ export default function ChangelogModal({ open, onClose }: ChangelogModalProps) {
                   {meta.pointCount.toLocaleString()} <span className="text-xs font-normal text-fg-muted">处</span>
                 </div>
               </div>
-              <div className="bg-surface p-3 rounded-xl border border-border-soft">
+              <div className="bg-surface p-3 rounded-xl border border-border-soft flex flex-col justify-between">
                 <div className="text-[10px] text-fg-muted">数据同步时间</div>
-                <div className="text-xs font-bold text-fg mt-1.5 truncate" title={fullDateStr}>
-                  {fullDateStr}
+                <div className="mt-1 flex flex-col font-mono leading-tight">
+                  <span className="text-xs font-bold text-fg">
+                    {datePart}
+                  </span>
+                  <span className="text-[11px] font-semibold text-fg-muted mt-0.5">
+                    {timePart}
+                  </span>
                 </div>
               </div>
             </div>
