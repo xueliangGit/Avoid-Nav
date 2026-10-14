@@ -129,7 +129,17 @@ const MapContainer = () => {
     setManualAvoidAreas,
   });
 
-  const { handleFocusRisk } = useMapRiskFocus(AMap, map);
+  const [mobilePlannerOpen, setMobilePlannerOpen] = useState(false);
+  const { handleFocusRisk: rawFocusRisk } = useMapRiskFocus(AMap, map);
+
+  const handleFocusRisk = useCallback(
+    (risk: import('@/lib/types').RouteRisk) => {
+      // 点击避让点时，聚焦到地图位置并自动收起移动端弹窗，让用户清晰看到位置
+      rawFocusRisk(risk);
+      setMobilePlannerOpen(false);
+    },
+    [rawFocusRisk],
+  );
 
   const {
     canNavigate,
@@ -336,6 +346,8 @@ const MapContainer = () => {
       canSave={canSave}
       canNavigate={canNavigate}
       canShare={canShare}
+      modalOpen={mobilePlannerOpen}
+      onModalOpenChange={setMobilePlannerOpen}
       onPlan={handlePlan}
       onStartNavigation={handleStartNavigation}
       onSaveRoute={handleOpenSave}
