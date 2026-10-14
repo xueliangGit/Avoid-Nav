@@ -44,6 +44,17 @@ export function getDataMeta(): DataMeta {
 export const CHANGELOG_LIST: ChangelogItem[] = [
   {
     version: '数据更新',
+    date: '2026-10-14',
+    title: '最新进京证与限行监控点位刷新',
+    type: 'data',
+    details: [
+      '监控点位总数刷新至 6,297 处（净增 3 处）。',
+      '新增点位：“顺义区 顺泰路与双河大街交口 西向东【六环外】”、“顺义区 双河大街与通顺路交口 北向南【六环外】”、“顺义区 双裕街与裕航路交口 西向东”。',
+      '增补进京主要干道与六环周边最新管控监控点位。',
+    ],
+  },
+  {
+    version: '数据更新',
     date: '2026-10-13',
     title: '最新进京证与限行监控点位刷新',
     type: 'data',
