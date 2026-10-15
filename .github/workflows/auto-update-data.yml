@@ -62,3 +62,10 @@ jobs:
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
         run: |
           node scripts/notify-dingtalk.js "${{ steps.sync_docs.outputs.count }}" "${{ steps.git_push.outputs.commit_sha }}"
+
+      - name: 主动推送最新数据至各大搜索引擎 (Bing IndexNow & 百度)
+        if: steps.check_changes.outputs.has_changes == 'true'
+        env:
+          BAIDU_PUSH_TOKEN: ${{ secrets.BAIDU_PUSH_TOKEN }}
+        run: |
+          node scripts/submit-seo.js

@@ -54,7 +54,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "zh_CN",
-    url: "https://daohang.beijing/",
+    url: "https://avoid-nav-bj.yamjs.cn/",
     siteName: "北京避让导航",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
@@ -82,7 +82,7 @@ export default function RootLayout({
       {
         "@type": "WebSite",
         name: "北京避让导航",
-        url: "https://daohang.beijing/",
+        url: "https://avoid-nav-bj.yamjs.cn/",
         description: SITE_DESCRIPTION,
         inLanguage: "zh-CN",
       },

@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/api/'],
     },
-    sitemap: 'https://daohang.beijing/sitemap.xml',
+    sitemap: 'https://avoid-nav-bj.yamjs.cn/sitemap.xml',
   };
 }

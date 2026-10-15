@@ -10,6 +10,7 @@
     "prebuild": "node scripts/preprocess.js",
     "build": "next build",
     "predev": "node scripts/preprocess.js",
+    "submit-seo": "node scripts/submit-seo.js",
     "start": "next start -p 3200",
     "lint": "eslint src"
   },
