@@ -31,10 +31,9 @@ const PLUGINS = [
 ];
 
 const TYPE_NAMES: Record<string, { label: string; color: string }> = {
-  '5': { label: '六环内双拍 (进京证+高峰)', color: '#e11d48' },
-  '2': { label: '新增 / 实锤高风险点', color: '#dc2626' },
-  '3': { label: '仅限早晚高峰 (五环内)', color: '#d97706' },
-  '1': { label: '常规综合监控', color: '#2563eb' },
+  '2': { label: '常规进京证监控 (六环内)', color: '#dc2626' },
+  '5': { label: '进京证与早晚高峰双拍', color: '#e11d48' },
+  '1': { label: '仅限早晚高峰 (五环内)', color: '#2563eb' },
   '6': { label: '六环外监控 (外证即可)', color: '#059669' },
   '4': { label: '已拆除 / 已停拍', color: '#64748b' },
 };
