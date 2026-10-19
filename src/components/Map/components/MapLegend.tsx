@@ -59,10 +59,10 @@ export default function MapLegend() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="absolute right-4 bottom-20 z-30 select-none">
+    <div className="absolute right-4 bottom-24 z-[1800] select-none pointer-events-auto">
       {/* 展开面板 */}
       {isOpen && (
-        <div className="mb-2 w-72 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 shadow-2xl p-3.5 transition-all animate-in fade-in duration-150">
+        <div className="mb-2 w-72 max-h-[75vh] overflow-y-auto rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 shadow-2xl p-3.5 transition-all animate-in fade-in duration-150">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center space-x-1.5 text-xs font-black text-slate-800 dark:text-slate-100">
               <ShieldCheck className="w-4 h-4 text-primary" />

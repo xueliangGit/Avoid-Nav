@@ -262,6 +262,65 @@ export default function SettingsDrawer({
               </span>
             </button>
           </section>
+
+          {/* 探头图例速查 */}
+          <section>
+            <h4 className="text-[10px] font-black text-fg-subtle uppercase tracking-widest mb-3">
+              点位图例与限行说明
+            </h4>
+            <div className="space-y-2 p-3 rounded-2xl bg-overlay-soft border border-border-soft text-xs">
+              <div className="flex items-center gap-2.5">
+                <img src="/images/2.png" alt="常规" className="w-4 h-5 object-contain" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-fg">常规进京证监控</span>
+                    <span className="text-[10px] font-bold text-red-500">高风险</span>
+                  </div>
+                  <span className="text-[11px] text-fg-muted">六环内常规抓拍进京证</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 pt-1.5 border-t border-border-soft">
+                <img src="/images/5.png" alt="双拍" className="w-4 h-5 object-contain" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-fg">进京证+高峰双拍</span>
+                    <span className="text-[10px] font-bold text-rose-500">极高风险</span>
+                  </div>
+                  <span className="text-[11px] text-fg-muted">重点路口，进京证与早晚高峰兼拍</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 pt-1.5 border-t border-border-soft">
+                <img src="/images/1.png" alt="高峰" className="w-4 h-5 object-contain" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-fg">仅早晚高峰监控</span>
+                    <span className="text-[10px] font-bold text-blue-500">中风险</span>
+                  </div>
+                  <span className="text-[11px] text-fg-muted">仅限工作日早晚高峰 (五环内)</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 pt-1.5 border-t border-border-soft">
+                <img src="/images/6.png" alt="六环外" className="w-4 h-5 object-contain" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-fg">六环外监控</span>
+                    <span className="text-[10px] font-bold text-emerald-500">低风险</span>
+                  </div>
+                  <span className="text-[11px] text-fg-muted">办六环外证即可，不消耗内环次数</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 pt-1.5 border-t border-border-soft">
+                <img src="/images/4.png" alt="已停拍" className="w-4 h-5 object-contain" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-fg">已拆除 / 已停拍</span>
+                    <span className="text-[10px] font-bold text-slate-400">已失效</span>
+                  </div>
+                  <span className="text-[11px] text-fg-muted">已核实停拍，系统默认不绕路</span>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </>
