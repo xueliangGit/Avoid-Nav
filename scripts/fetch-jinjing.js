@@ -57,14 +57,12 @@ function extractLabelsArray(html) {
   throw new Error('LabelsData 数组括号未闭合');
 }
 
-async function main() {
-  console.log('🌐 抓取数据源:', SOURCE_URL);
-  const html = await httpGet(SOURCE_URL);
+const RAW_OUTPUT_FILE = path.join(__dirname, '..', 'raw-secondary.json');
 
+async function fetchSecondaryData() {
+  const html = await httpGet(SOURCE_URL);
   const arrSrc = extractLabelsArray(html);
 
-  // LabelsData 的每个对象用了 `icon,` 简写属性（引用页面里的 icon 变量）。
-  // 用 new Function 在受控作用域里求值，把 icon 注入为 null，避免污染全局。
   let list;
   try {
     list = new Function('icon', `"use strict"; return (${arrSrc});`)(null);
@@ -75,7 +73,7 @@ async function main() {
     throw new Error('LabelsData 解析结果为空');
   }
 
-  const cleaned = list
+  return list
     .filter((it) => it && Array.isArray(it.position) && it.position.length === 2)
     .map((it) => ({
       name: it.name || '',
@@ -86,13 +84,22 @@ async function main() {
       href: it.href || '',
       icon: null,
     }));
-
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(cleaned));
-  console.log(`✅ 写入 ${cleaned.length} 条 → ${OUTPUT_FILE}`);
-  console.log('👉 接下来运行 node scripts/preprocess.js 精炼数据（npm run update-data 会自动跑）');
 }
 
-main().catch((e) => {
-  console.error('❌ 抓取失败:', e.message);
-  process.exit(1);
-});
+async function main() {
+  console.log('🌐 正在从辅助数据源抓取数据 (jinjing365.com)...');
+  try {
+    const cleaned = await fetchSecondaryData();
+    fs.writeFileSync(RAW_OUTPUT_FILE, JSON.stringify(cleaned), 'utf-8');
+    console.log(`✅ 辅助源拉取成功，共 ${cleaned.length} 处点位，已保存至 raw-secondary.json`);
+  } catch (e) {
+    console.error('❌ 辅助源抓取失败:', e.message);
+    process.exit(1);
+  }
+}
+
+if (require.main === module) {
+  main();
+}
+
+module.exports = { fetchSecondaryData };

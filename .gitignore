@@ -41,3 +41,5 @@ next-env.d.ts
 /.worktrees
 Snipaste_*.png
 /.new-points.json
+/raw-primary.json
+/raw-secondary.json

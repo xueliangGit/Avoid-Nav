@@ -1,12 +1,13 @@
 {
   "name": "myproject",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3200",
     "preprocess": "node scripts/preprocess.js",
-    "update-data": "node scripts/fetch-jinjing.js && node scripts/preprocess.js",
-    "update-data-v2": "node scripts/fetch-api.js && node scripts/preprocess.js",
+    "update-data": "node scripts/update-data.js",
+    "update-primary": "node scripts/fetch-primary.js",
+    "update-secondary": "node scripts/fetch-jinjing.js",
     "prebuild": "node scripts/preprocess.js",
     "build": "next build",
     "predev": "node scripts/preprocess.js",

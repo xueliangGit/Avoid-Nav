@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import AMapLoader from '@amap/amap-jsapi-loader';
 import rawData from '@/lib/refined-data.json';
 import { spatialIndex } from '@/lib/spatial';
-import type { LngLat, RawCameraTuple, RefinedData, RingFilter } from '@/lib/types';
+import type { LngLat, RefinedData, RingFilter } from '@/lib/types';
 
 export interface UseAMapResult {
   AMap: any;
@@ -30,14 +30,61 @@ const PLUGINS = [
   'AMap.Circle',
 ];
 
-function buildPopupHtml(name: string, href: string): string {
+const TYPE_NAMES: Record<string, { label: string; color: string }> = {
+  '5': { label: '六环内双拍 (进京证+高峰)', color: '#e11d48' },
+  '2': { label: '新增 / 实锤高风险点', color: '#dc2626' },
+  '3': { label: '仅限早晚高峰 (五环内)', color: '#d97706' },
+  '1': { label: '常规综合监控', color: '#2563eb' },
+  '6': { label: '六环外监控 (外证即可)', color: '#059669' },
+  '4': { label: '已拆除 / 已停拍', color: '#64748b' },
+};
+
+function buildPopupHtml(
+  name: string,
+  href: string,
+  type?: string,
+  picCount: number = 0,
+  direction?: string
+): string {
+  const typeInfo = TYPE_NAMES[String(type)] || { label: '交通监控点', color: '#2563eb' };
+  const targetHref = href
+    ? href.startsWith('http')
+      ? href
+      : `${POPUP_BASE_URL}${href.startsWith('/') ? '' : '/'}${href}`
+    : '#';
+
+  const picBadge =
+    picCount > 0
+      ? `<div style="display:inline-block;margin-top:6px;padding:2px 8px;border-radius:6px;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;font-size:11px;font-weight:700;">
+           🖼️ 车友违章截图: ${picCount} 张
+         </div>`
+      : '';
+
+  const dirBadge = direction
+    ? `<div style="display:inline-block;margin-top:6px;margin-right:6px;padding:2px 8px;border-radius:6px;background:#f1f5f9;border:1px solid #e2e8f0;color:#334155;font-size:11px;font-weight:600;">
+         🚗 朝向: ${direction}
+       </div>`
+    : '';
+
   return `
-    <div style="padding:12px;min-width:200px;font-family:sans-serif;color:#1e293b;">
-      <h4 style="margin:0 0 8px 0;font-size:14px;font-weight:800;">${name}</h4>
-      <a href="${POPUP_BASE_URL}${href}" target="_blank" rel="noreferrer"
-         style="display:block;width:100%;text-align:center;background:#2563eb;color:#fff;padding:8px;border-radius:8px;font-size:12px;text-decoration:none;font-weight:bold;">
-        查看详细报告 &#8599;
-      </a>
+    <div style="padding:14px;min-width:240px;max-width:300px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0f172a;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${typeInfo.color};"></span>
+        <span style="font-size:11px;font-weight:800;color:${typeInfo.color};">${typeInfo.label}</span>
+      </div>
+      <h4 style="margin:0 0 4px 0;font-size:13px;font-weight:700;line-height:1.4;color:#1e293b;">${name}</h4>
+      <div style="margin-bottom:10px;">
+        ${dirBadge}
+        ${picBadge}
+      </div>
+      ${
+        targetHref !== '#'
+          ? `<a href="${targetHref}" target="_blank" rel="noreferrer"
+               style="display:block;width:100%;text-align:center;box-sizing:border-box;background:#2563eb;color:#ffffff;padding:8px 12px;border-radius:10px;font-size:12px;text-decoration:none;font-weight:700;box-shadow:0 2px 6px rgba(37,99,235,0.25);">
+               查看现场照片与车友讨论 &#8599;
+             </a>`
+          : ''
+      }
     </div>
   `;
 }
@@ -103,8 +150,8 @@ export function useAMap(containerId: string, ringFilter: RingFilter = 'all', isD
         };
 
         const massData: any[] = [];
-        for (const tuple of data.points as RawCameraTuple[]) {
-          const [lng, lat, type, , href, name] = tuple;
+        for (const tuple of data.points as any[]) {
+          const [lng, lat, type, , href, name, direction, picCount] = tuple;
           if (typeof lng !== 'number' || typeof lat !== 'number') continue;
           if (Number.isNaN(lng) || Number.isNaN(lat)) continue;
           massData.push({
@@ -113,6 +160,9 @@ export function useAMap(containerId: string, ringFilter: RingFilter = 'all', isD
             name: name || '',
             href: href || '',
             _aa: String(type), // 保留 aa 字段用于六环筛选
+            _type: String(type),
+            _direction: direction || '',
+            _picCount: Number(picCount) || 0,
           });
         }
         allMassDataRef.current = massData;
@@ -124,7 +174,15 @@ export function useAMap(containerId: string, ringFilter: RingFilter = 'all', isD
         });
         massMarks.on('click', (e: any) => {
           const d = e.data ?? {};
-          infoWindow.setContent(buildPopupHtml(d.name ?? '', d.href ?? ''));
+          infoWindow.setContent(
+            buildPopupHtml(
+              d.name ?? '',
+              d.href ?? '',
+              d._type,
+              d._picCount,
+              d._direction
+            )
+          );
           infoWindow.open(mapInstance, d.lnglat);
         });
         massMarks.setMap(mapInstance);

@@ -25,6 +25,7 @@ import HistoryDrawer from '@/components/History/HistoryDrawer';
 import SettingsDrawer from '@/components/shared/SettingsDrawer';
 import SaveRouteDialog from '@/components/History/SaveRouteDialog';
 import ChangelogModal from '@/components/shared/ChangelogModal';
+import MapLegend from './components/MapLegend';
 
 const MAP_CONTAINER_ID = 'container';
 
@@ -365,6 +366,7 @@ const MapContainer = () => {
   return (
     <div className="relative w-full h-full bg-surface-2 overflow-hidden text-fg-2">
       {layoutContent}
+      <MapLegend />
 
       {mode !== 'none' && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1900] pointer-events-none">

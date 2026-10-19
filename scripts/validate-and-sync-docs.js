@@ -28,8 +28,11 @@ function getDiffPoints(currentList) {
     });
     const oldList = JSON.parse(oldRaw);
     if (!Array.isArray(oldList)) return [];
-    const oldNames = new Set(oldList.map((p) => p.name));
-    return currentList.filter((p) => p.name && !oldNames.has(p.name));
+    const oldNames = new Set(oldList.map((p) => p.name || p.Address || ''));
+    return currentList.filter((p) => {
+      const name = p.name || p.Address;
+      return name && !oldNames.has(name);
+    });
   } catch {
     return [];
   }
