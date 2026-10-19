@@ -43,16 +43,22 @@ function normalizePrimaryPoint(item) {
   const isNew = Boolean(item.IsNew);
   const discarded = isDiscarded(address, cameraType);
 
-  let aa = '1';
+  let aa = '2';
   if (discarded) {
     aa = '4';
   } else if (isSixRingOut) {
     aa = '6';
-  } else if (cameraType.includes('早晚高峰') && !cameraType.includes('进京证')) {
-    aa = '3';
-  } else if (cameraType.includes('进京证')) {
+  } else if (
+    cameraType.includes('进京证') &&
+    (cameraType.includes('高峰') || cameraType.includes('早晩'))
+  ) {
+    // 既拍进京证又拍早晚高峰 -> 蓝红双拼水滴 (5.png)
     aa = '5';
-  } else if (isNew || picCount > 0) {
+  } else if (cameraType.includes('高峰')) {
+    // 仅拍早晚高峰 -> 蓝色水滴 (1.png)
+    aa = '1';
+  } else {
+    // 常规拍进京证 -> 经典红色水滴 (2.png)
     aa = '2';
   }
 
