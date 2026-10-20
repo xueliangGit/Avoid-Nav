@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- 背景渐变：科技深蓝到高亮普鲁士蓝 -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+
+    <!-- 盾牌/护甲高光渐变 -->
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.05" />
+    </linearGradient>
+
+    <!-- 导航指针渐变 -->
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+
+    <!-- 避让轨迹/绿色安全环渐变 -->
+    <linearGradient id="safeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+
+    <!-- 微阴影 -->
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.3" />
+    </filter>
+    <filter id="arrowShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- 圆角外壳背景 -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+
+  <!-- 内部安全盾牌轮廓 (象征避让/防护) -->
+  <path d="M256 72 C340 72 400 96 400 96 C400 248 340 376 256 428 C172 376 112 248 112 96 C112 96 172 72 256 72 Z"
+        fill="url(#shieldGrad)"
+        stroke="#ffffff"
+        stroke-width="8"
+        stroke-opacity="0.3" />
+
+  <!-- 避让路线环弧 (象征动态绕行/规避) -->
+  <path d="M148 300 A150 150 0 0 1 364 212"
+        fill="none"
+        stroke="url(#safeGrad)"
+        stroke-width="20"
+        stroke-linecap="round"
+        stroke-dasharray="16 16"
+        opacity="0.9" />
+
+  <!-- 核心导航箭头 (朝向东北，锐意前行) -->
+  <g filter="url(#arrowShadow)">
+    <path d="M256 140 L360 352 L256 304 L152 352 Z"
+          fill="url(#arrowGrad)" />
+    <!-- 箭头右翼微阴影，营造精致 3D 棱面质感 -->
+    <path d="M256 140 L360 352 L256 304 Z"
+          fill="#cbd5e1"
+          opacity="0.5" />
+  </g>
+
+  <!-- 中心避让雷达/安全绿点 (象征已探测并安全绕开) -->
+  <circle cx="360" cy="180" r="16" fill="#10b981" />
+  <circle cx="360" cy="180" r="28" fill="none" stroke="#10b981" stroke-width="4" opacity="0.6" />
+</svg>
