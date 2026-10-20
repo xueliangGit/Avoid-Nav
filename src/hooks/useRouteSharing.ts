@@ -116,5 +116,40 @@ export function useRouteSharing({
     fn();
   }, [ready, AMap, map]);
 
+  // 当用户修改了起止点、途经点或避让区时，自动将最新的路线状态同步至浏览器 URL (replaceState)
+  // 彻底解决用户在微信内修改路线后，点击右上角"在浏览器中打开"或点击导航时依然停留在一开始旧路线的严重体验问题
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!start || !end) return;
+
+    try {
+      const token = encodeShare({
+        s: start,
+        e: end,
+        w: waypoints,
+        m: manualAvoidAreas,
+        i: Array.from(ignoredRiskIds),
+        f: Array.from(forcedRiskIds),
+      });
+
+      const currentParams = new URLSearchParams(window.location.search);
+      const currentToken = currentParams.get('route');
+
+      // 仅在路线真实发生改变时更新 URL，避免无意义的 replaceState 调用
+      if (currentToken !== token) {
+        const newUrl = buildShareUrl(token);
+        window.history.replaceState(null, '', newUrl);
+        // 同步更新 sessionStorage 防重标志，确保当前页面状态自洽
+        try {
+          window.sessionStorage.setItem('avoid-nav:loaded-share-token', token);
+        } catch {
+          // 忽略隐私模式
+        }
+      }
+    } catch {
+      // 容错保护
+    }
+  }, [start, end, waypoints, manualAvoidAreas, ignoredRiskIds, forcedRiskIds]);
+
   return { canShare, handleShareRoute };
 }
