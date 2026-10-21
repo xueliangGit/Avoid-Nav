@@ -1,8 +1,19 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { buildRiskPolygons, manualAreaToPolygon, scanPathRisks } from '@/lib/avoidance';
+import { scanPathRisks } from '@/lib/avoidance';
 import type { AvoidSize } from '@/lib/avoidance';
+import { evaluateRouteCache, routeCacheStorage } from '@/lib/storage';
+import { hydrateCachedPlanToMap } from './routePlannerCacheHelper';
+import {
+  MAX_ROUNDS,
+  ROUND_DELAY_MS,
+  buildLog,
+  buildPolygonsFromRisks,
+  collectPathPoints,
+  probeRoutePath,
+  toLngLatArray,
+} from './routePlannerPathHelper';
 import type {
   DebugLog,
   LngLat,
@@ -25,6 +36,8 @@ export interface RoutePlanInput {
   ringFilter: import('@/lib/types').RingFilter;
   /** 失效点(aa=4)是否也自动避让，默认 false */
   avoidDeadPoints: boolean;
+  /** 是否强制全量重算跳过缓存，默认 false */
+  forceFresh?: boolean;
 }
 
 export interface RoutePlanState {
@@ -38,68 +51,16 @@ export interface RoutePlanState {
   routePath: LngLat[];
   logs: DebugLog[];
   routeInfo: { distance: number; duration: number } | null;
+  /** 当前路线是否由历史缓存秒开提供 */
+  fromCache: boolean;
+  /** 缓存时效提示信息 */
+  cacheNotice: string | null;
 }
 
 export interface UseRoutePlannerResult extends RoutePlanState {
   /** 返回是否最终生成了可用路线 */
   plan: (override?: Partial<RoutePlanInput>) => Promise<boolean>;
   clearLogs: () => void;
-}
-
-// 聚类合并后多边形数量大幅下降，放宽探测轮次至 8 轮以提供深度规避
-const MAX_ROUNDS = 8;
-const MAX_AVOID_POLYGONS = 40;
-const ROUND_DELAY_MS = 800;
-
-interface PathPoint extends LngLat {}
-
-function nowStamp(): string {
-  return new Date().toLocaleTimeString();
-}
-
-function buildLog(round: number, message: string, type: DebugLog['type']): DebugLog {
-  return { round, message, type, timestamp: nowStamp() };
-}
-
-function collectPathPoints(route: any): PathPoint[] {
-  const pts: PathPoint[] = [];
-  if (!route?.steps) return pts;
-  for (const step of route.steps) {
-    if (!step?.path) continue;
-    for (const p of step.path) {
-      pts.push({ lng: p.lng, lat: p.lat });
-    }
-  }
-  return pts;
-}
-
-function buildPolygonsFromRisks(
-  risks: RouteRisk[],
-  ignored: Set<string>,
-  forced: Set<string>,
-  manual: ManualAvoidArea[],
-  size: AvoidSize,
-): [number, number][][] {
-  const polygons: [number, number][][] = [];
-
-  for (const area of manual) {
-    polygons.push(manualAreaToPolygon(area.lng, area.lat, area.size ?? 'medium'));
-    if (polygons.length >= MAX_AVOID_POLYGONS) return polygons;
-  }
-
-  // 风险点先聚类合并成尽量少的包围盒，避免多边形过多触发高德 API 报错
-  const active = risks.filter((r) => !ignored.has(r.id));
-  const riskPolygons = buildRiskPolygons(active, forced, size);
-  for (const poly of riskPolygons) {
-    polygons.push(poly);
-    if (polygons.length >= MAX_AVOID_POLYGONS) break;
-  }
-
-  return polygons;
-}
-
-function toLngLatArray(AMap: any, polygons: [number, number][][]): any[][] {
-  return polygons.map((path) => path.map(([lng, lat]) => new AMap.LngLat(lng, lat)));
 }
 
 export function useRoutePlanner(
@@ -118,6 +79,8 @@ export function useRoutePlanner(
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(
     null,
   );
+  const [fromCache, setFromCache] = useState(false);
+  const [cacheNotice, setCacheNotice] = useState<string | null>(null);
 
   const drivingRef = useRef<any>(null);
   const polygonOverlaysRef = useRef<any[]>([]);
@@ -141,54 +104,58 @@ export function useRoutePlanner(
     polygonOverlaysRef.current = [];
   }, []);
 
-  const probeRoute = useCallback(
-    (
-      start: LngLat,
-      end: LngLat,
-      waypoints: Waypoint[],
-      polygons: [number, number][][],
-      attempt = 0,
-    ): Promise<PathPoint[]> => {
-      return new Promise((resolve) => {
-        const driving = new AMap.Driving({ policy: AMap.DrivingPolicy.LEAST_TIME });
-        if (polygons.length > 0) {
-          driving.setAvoidPolygons(toLngLatArray(AMap, polygons));
-        }
-        const opts: any = {};
-        if (waypoints.length > 0) {
-          opts.waypoints = waypoints.map((w) => new AMap.LngLat(w.lng, w.lat));
-        }
-        driving.search(
-          new AMap.LngLat(start.lng, start.lat),
-          new AMap.LngLat(end.lng, end.lat),
-          opts,
-          async (s: string, r: any) => {
-            if (s === 'complete' && r?.routes?.[0]) {
-              resolve(collectPathPoints(r.routes[0]));
-              return;
-            }
-            // 针对高德 QPS 限制 (10021 CUQPS_HAS_EXCEEDED_THE_LIMIT) 指数退避重试
-            const isQpsLimit =
-              r?.info === 'CUQPS_HAS_EXCEEDED_THE_LIMIT' ||
-              r?.infocode === '10021' ||
-              (typeof r === 'string' && r.includes('10021'));
-            if (isQpsLimit && attempt < 3) {
-              await new Promise((res) => setTimeout(res, 800 * (attempt + 1)));
-              const retryPoints = await probeRoute(start, end, waypoints, polygons, attempt + 1);
-              resolve(retryPoints);
-              return;
-            }
-            resolve([]);
-          },
-        );
-      });
-    },
-    [AMap],
-  );
-
   const plan = useCallback(async (override?: Partial<RoutePlanInput>): Promise<boolean> => {
     const current = { ...inputRef.current, ...(override ?? {}) } as RoutePlanInput;
     if (!AMap || !map || !current.start || !current.end) return false;
+
+    // 1. 检查是否存在可复用的历史规划缓存
+    const isForceFresh = Boolean(override?.forceFresh);
+    if (!isForceFresh) {
+      const cached = routeCacheStorage.find(current);
+      if (cached) {
+        const evaluation = evaluateRouteCache(cached);
+        if (evaluation.status === 'FRESH') {
+          // 完全新鲜：0毫秒秒开还原并直接返回
+          clearOverlays();
+          setPlanning(false);
+          setStatus(null);
+          setFromCache(true);
+          setCacheNotice(evaluation.reason || '已秒开历史路线');
+          hydrateCachedPlanToMap(AMap, map, cached, polygonOverlaysRef.current, {
+            setRouteRisks,
+            setAvoidedRisks,
+            setSafelyIgnoredRisks,
+            setDeadRisks,
+            setRoutePath,
+            setRouteInfo,
+          });
+          appendLog(0, `⚡ ${evaluation.reason || '已秒开恢复历史路线'}`, 'success');
+          return true;
+        }
+
+        if (evaluation.status === 'STALE') {
+          // 时间久了：先秒开旧路线防白屏，同时后台无缝自动刷新最新路况
+          clearOverlays();
+          setFromCache(true);
+          setCacheNotice(evaluation.reason || '路况变化中，正在自动刷新...');
+          hydrateCachedPlanToMap(AMap, map, cached, polygonOverlaysRef.current, {
+            setRouteRisks,
+            setAvoidedRisks,
+            setSafelyIgnoredRisks,
+            setDeadRisks,
+            setRoutePath,
+            setRouteInfo,
+          });
+          appendLog(
+            0,
+            `⚡ 规划于 ${evaluation.ageMinutes} 分钟前，正在自动刷新最新路况...`,
+            'info',
+          );
+        } else if (evaluation.status === 'EXPIRED_PEAK') {
+          appendLog(0, `⚠️ ${evaluation.reason}`, 'ignore');
+        }
+      }
+    }
 
     setPlanning(true);
     setStatus(`规避分析 (1/${MAX_ROUNDS})`);
@@ -216,7 +183,8 @@ export function useRoutePlanner(
           current.riskAvoidSize ?? 'medium',
         );
 
-        const points = await probeRoute(
+        const points = await probeRoutePath(
+          AMap,
           current.start,
           current.end,
           current.waypoints,
@@ -374,6 +342,26 @@ export function useRoutePlanner(
                 'info',
               );
               success = true;
+              setFromCache(false);
+              setCacheNotice(null);
+
+              // 自动持久化到规划缓存
+              try {
+                routeCacheStorage.save(current, {
+                  routeInfo: {
+                    distance: route.distance ?? 0,
+                    duration: route.time ?? 0,
+                  },
+                  routePath: finalPts,
+                  avoidedRisks: masterList,
+                  routeRisks: finalRisks,
+                  safelyIgnoredRisks: Array.from(safelyIgnoredMap.values()),
+                  deadRisks: Array.from(deadMap.values()),
+                  finalPolygons,
+                });
+              } catch {
+                // 安全容错
+              }
             } else {
               appendLog(MAX_ROUNDS + 1, '最终路线渲染失败', 'error');
             }
@@ -386,7 +374,7 @@ export function useRoutePlanner(
       setPlanning(false);
     }
     return success;
-  }, [AMap, map, appendLog, clearOverlays, probeRoute]);
+  }, [AMap, map, appendLog, clearOverlays]);
 
   return {
     planning,
@@ -398,6 +386,8 @@ export function useRoutePlanner(
     routePath,
     logs,
     routeInfo,
+    fromCache,
+    cacheNotice,
     plan,
     clearLogs,
   };

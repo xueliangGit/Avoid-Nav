@@ -11,3 +11,6 @@ export type {
 } from './types';
 
 export { StorageQuotaError } from './types';
+export * from './routeCacheTypes';
+export * from './routeCachePolicy';
+export * from './routeCacheStorage';

@@ -13,6 +13,7 @@ import { useRouteSharing } from '@/hooks/useRouteSharing';
 import { useRouteStorageActions } from '@/hooks/useRouteStorageActions';
 import { usePlanAction } from '@/hooks/usePlanAction';
 import { useChangelogNotice } from '@/hooks/useChangelogNotice';
+import { routeCacheStorage, evaluateRouteCache } from '@/lib/storage';
 import Toast, { type ToastVariant } from '@/components/shared/Toast';
 import WechatGuide from '@/components/shared/WechatGuide';
 import type { ManualAvoidSize, RingFilter } from '@/lib/types';
@@ -113,8 +114,38 @@ const MapContainer = () => {
     routePath,
     logs,
     routeInfo,
+    fromCache: _fromCache,
+    cacheNotice,
     plan,
   } = useRoutePlanner(AMap, map, plannerInput);
+
+  // 当选择的点位命中历史规划时，自动秒开展示；若过时则后台自动刷新
+  const lastAutoPlannedKeyRef = useRef<string>('');
+  useEffect(() => {
+    if (!AMap || !map || !start || !end || planning) return;
+
+    const currentKey = `${start.lng.toFixed(5)},${start.lat.toFixed(5)}->${end.lng.toFixed(5)},${end.lat.toFixed(5)}`;
+    if (lastAutoPlannedKeyRef.current === currentKey) return;
+
+    const cached = routeCacheStorage.find(plannerInput);
+    if (cached) {
+      const evaluation = evaluateRouteCache(cached);
+      // 未跨越早晚高峰临界时段时，直接自动秒开展示
+      if (evaluation.status !== 'EXPIRED_PEAK') {
+        lastAutoPlannedKeyRef.current = currentKey;
+        void plan();
+      }
+    }
+  }, [AMap, map, start, end, planning, plannerInput, plan]);
+
+  // 缓存命中时向用户给出轻量反馈
+  const prevCacheNoticeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (cacheNotice && cacheNotice !== prevCacheNoticeRef.current) {
+      showToast(cacheNotice, 'success');
+    }
+    prevCacheNoticeRef.current = cacheNotice;
+  }, [cacheNotice, showToast]);
 
   // 地图交互事件绑定
   useMapInteractions({
