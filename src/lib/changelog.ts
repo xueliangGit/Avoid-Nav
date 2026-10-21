@@ -43,6 +43,17 @@ export function getDataMeta(): DataMeta {
 
 export const CHANGELOG_LIST: ChangelogItem[] = [
   {
+    version: '数据更新',
+    date: '2026-10-22',
+    title: '最新进京证与限行监控点位刷新',
+    type: 'data',
+    details: [
+      '监控点位总数刷新至 7,278 处（净增 1 处）。',
+      '新增点位：“【六环外】石门北街与顺白路交叉口 [西向东]”。',
+      '增补进京主要干道与六环周边最新管控监控点位。',
+    ],
+  },
+  {
     version: '1.4.1',
     date: '2026-10-21',
     title: '路线规划历史智能缓存与早晚高峰时效刷新机制',
