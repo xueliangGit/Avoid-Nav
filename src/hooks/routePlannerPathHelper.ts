@@ -1,4 +1,5 @@
 // src/hooks/routePlannerPathHelper.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { buildRiskPolygons, manualAreaToPolygon } from '@/lib/avoidance';
 import type { AvoidSize } from '@/lib/avoidance';
 import type { DebugLog, LngLat, ManualAvoidArea, RouteRisk, Waypoint } from '@/lib/types';

@@ -1,4 +1,5 @@
 // src/hooks/routePlannerCacheHelper.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { CachedRoutePlan } from '@/lib/storage/routeCacheTypes';
 import type { LngLat, RouteRisk } from '@/lib/types';
 

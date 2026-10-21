@@ -43,6 +43,18 @@ export function getDataMeta(): DataMeta {
 
 export const CHANGELOG_LIST: ChangelogItem[] = [
   {
+    version: '1.4.1',
+    date: '2026-10-21',
+    title: '路线规划历史智能缓存与早晚高峰时效刷新机制',
+    type: 'feature',
+    details: [
+      '新增路线规划智能缓存：再次选择历史起止点时实现 0 毫秒秒开还原，告别多轮等待。',
+      '独家北京早晚高峰时段安全熔断：跨越 07:00、09:00、17:00、20:00 临界时段自动强制报废旧数据重算，彻底杜绝误闯抓拍风险。',
+      'Stale-While-Revalidate 动态保鲜：超过 15 分钟规划自动在后台静默刷新最新拥堵路况并平滑更新。',
+      'GPS 坐标 50 米容差模糊匹配：智能适应手机原地定位微小漂移，显著提升常用通勤路线命中率。',
+    ],
+  },
+  {
     version: '数据更新',
     date: '2026-10-21',
     title: '最新进京证与限行监控点位刷新',

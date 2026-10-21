@@ -1,7 +1,6 @@
 // src/lib/storage/routeCachePolicy.ts
 import type {
   CacheEvaluation,
-  CacheFreshnessStatus,
   CachedRoutePlan,
   RouteFingerprintInput,
 } from './routeCacheTypes';
