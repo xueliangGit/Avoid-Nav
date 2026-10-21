@@ -81,7 +81,7 @@ async function sendNotification() {
         pointsMarkdown,
         `> **同步时间**：${now}`,
         COMMIT_SHA ? `> **关联提交**：\`${COMMIT_SHA}\`` : '',
-        '> **部署状态**：已自动推送到 `main` 分支并触发线上构建',
+        '> **部署状态**：已部署',
       ]
         .filter(Boolean)
         .join('\n\n'),
