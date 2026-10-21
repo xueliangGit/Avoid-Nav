@@ -61,6 +61,11 @@ async function sendNotification() {
   const now = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
 
   const newPoints = loadNewPoints();
+  if (newPoints.length === 0) {
+    console.log('ℹ️ 本次无新增点位明细，跳过发送钉钉群通知（避免无效打扰）。');
+    return;
+  }
+
   let pointsMarkdown = '';
   if (newPoints.length > 0) {
     const names = newPoints.map((p) => p.name).filter(Boolean);

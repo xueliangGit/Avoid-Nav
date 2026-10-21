@@ -49,9 +49,13 @@ function syncChangelog(count, formattedCount, currentList) {
     prevCount = parseInt(prevMatch[1].replace(/,/g, ''), 10);
   }
 
-  // 若最新记录的点位数与当前一致，说明已记录，跳过
-  if (prevCount === count) {
-    console.log(`ℹ️ changelog.ts 中最新记录已为 ${formattedCount} 处，无需重复写入`);
+  // 1. 优先提取真正新增的点位清单（比对 Git 历史中的 data.json）
+  const newPoints = getDiffPoints(currentList);
+  const countChanged = prevCount !== null && prevCount !== count;
+
+  // 2. 若既无真正新增点位，总数又未发生变化（仅图片数量等非关键属性变化），跳过日志更新
+  if (newPoints.length === 0 && !countChanged) {
+    console.log(`ℹ️ changelog.ts 中最新记录已为 ${formattedCount} 处且无新增点位，无需重复写入`);
     return [];
   }
 
@@ -63,8 +67,6 @@ function syncChangelog(count, formattedCount, currentList) {
     else if (diff < 0) diffStr = `（净减 ${Math.abs(diff)} 处）`;
   }
 
-  // 提取本次新增点位列表
-  const newPoints = getDiffPoints(currentList);
   const details = [`'监控点位总数刷新至 ${formattedCount} 处${diffStr}。'`];
 
   if (newPoints.length > 0) {
@@ -147,9 +149,10 @@ function main() {
 
   // 若处于 GitHub Actions 环境，向环境输出变量
   if (process.env.GITHUB_OUTPUT) {
+    const hasNewPoints = Boolean(newPoints && newPoints.length > 0);
     fs.appendFileSync(
       process.env.GITHUB_OUTPUT,
-      `count=${formattedCount}\nraw_count=${count}\nnew_count=${(newPoints || []).length}\n`,
+      `count=${formattedCount}\nraw_count=${count}\nnew_count=${(newPoints || []).length}\nhas_new_points=${hasNewPoints}\n`,
     );
   }
 }
