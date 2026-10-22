@@ -78,3 +78,37 @@ export function processDrivingRouteResult(
     duration: route.time ?? 0,
   };
 }
+
+/**
+ * 降级保底渲染：当避让多边形过多导致高德物理断路时，
+ * 立即释放多边形并重新搜索一条连通的基础路线，确保 100% 不白屏报错
+ */
+export function renderFallbackRoute(
+  AMap: any,
+  map: any,
+  current: RoutePlanInput,
+  opts: any,
+): Promise<{ route: any; result: ProcessRouteResultOutput } | null> {
+  return new Promise((resolve) => {
+    const fallbackDriving = new AMap.Driving({
+      policy: AMap.DrivingPolicy.LEAST_TIME,
+      map,
+      showTraffic: true,
+      autoFitView: true,
+    });
+    fallbackDriving.search(
+      new AMap.LngLat(current.start!.lng, current.start!.lat),
+      new AMap.LngLat(current.end!.lng, current.end!.lat),
+      opts,
+      (fbStatus: string, fbResult: any) => {
+        if (fbStatus === 'complete' && fbResult?.routes?.[0]) {
+          const route = fbResult.routes[0];
+          const result = processDrivingRouteResult(route, current);
+          resolve({ route, result });
+        } else {
+          resolve(null);
+        }
+      },
+    );
+  });
+}

@@ -333,7 +333,7 @@ export function scanPathRisks(
 
       const isDead = camera.type === '4';
       const forced = opts.forcedIds?.has(id) ?? false;
-      const check = checkDirectionConflict(carAngle, camera.direction);
+      const check = checkDirectionConflict(carAngle, camera.direction, camera.name);
 
       // 失效点：默认不纳入避让；仅当路线方向冲突时上报，供用户手动选择是否避让
       if (isDead && !opts.avoidDeadPoints && !forced) {

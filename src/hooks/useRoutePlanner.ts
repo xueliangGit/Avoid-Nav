@@ -19,7 +19,7 @@ import {
   probeRoutePath,
   ROUND_DELAY_MS,
 } from './routePlannerPathHelper';
-import { processDrivingRouteResult } from './routeResultProcessor';
+import { processDrivingRouteResult, renderFallbackRoute } from './routeResultProcessor';
 
 export function useRoutePlanner(
   AMap: any,
@@ -254,11 +254,12 @@ export function useRoutePlanner(
         if (effectiveWaypoints.length > 0) {
           opts.waypoints = effectiveWaypoints.map((w) => new AMap.LngLat(w.lng, w.lat));
         }
+
         driving.search(
           new AMap.LngLat(current.start!.lng, current.start!.lat),
           new AMap.LngLat(current.end!.lng, current.end!.lat),
           opts,
-          (s: string, r: any) => {
+          async (s: string, r: any) => {
             if (s === 'complete' && r?.routes?.[0]) {
               const route = r.routes[0];
               const result = processDrivingRouteResult(route, current);
@@ -276,7 +277,6 @@ export function useRoutePlanner(
               setFromCache(false);
               setCacheNotice(null);
 
-              // 智能研判：侦测完毕后若仍有未避让风险点，且当前道路未走六环，且起终点允许走六环时，生成走廊建议
               const suggestion = checkAndBuildCorridorSuggestion({
                 current,
                 finalPts: result.finalPts,
@@ -308,10 +308,45 @@ export function useRoutePlanner(
               } catch {
                 // 安全容错
               }
+              resolve();
+            } else if (finalPolygons.length > 0) {
+              // 关键自愈兜底：带多边形被高德判定无路可走时，绝不白屏报错！
+              // 立即释放多边形，渲染出一条连通基础路线，并立即激活六环建议！
+              appendLog(MAX_ROUNDS + 1, '避让多边形阻断了全部连通通路，已自动释放阻断恢复基础路线', 'warn');
+              clearOverlays();
+              const fallback = await renderFallbackRoute(AMap, map, current, opts);
+              if (fallback) {
+                setRouteRisks(fallback.result.finalRisks);
+                setSafelyIgnoredRisks(fallback.result.safelyIgnoredRisks);
+                setDeadRisks(fallback.result.deadRisks);
+                setRoutePath(fallback.result.finalPts);
+                setRouteInfo({ distance: fallback.result.distance, duration: fallback.result.duration });
+                success = true;
+                setFromCache(false);
+                setCacheNotice(null);
+
+                const suggestion = checkAndBuildCorridorSuggestion({
+                  current,
+                  finalPts: fallback.result.finalPts,
+                  finalRisks: fallback.result.finalRisks,
+                  deadRisksCount: fallback.result.deadRisks.length,
+                });
+                setCorridorSuggestion(suggestion);
+                if (suggestion) {
+                  appendLog(
+                    MAX_ROUNDS + 1,
+                    `💡 地面道路已被监控完全阻断，强烈建议切换【${suggestion.corridorName}】`,
+                    'info',
+                  );
+                }
+              } else {
+                appendLog(MAX_ROUNDS + 1, '起终点无法连通，请检查位置', 'error');
+              }
+              resolve();
             } else {
-              appendLog(MAX_ROUNDS + 1, '高德路线渲染失败', 'error');
+              appendLog(MAX_ROUNDS + 1, '起终点无法连通，请检查位置', 'error');
+              resolve();
             }
-            resolve();
           },
         );
       });
