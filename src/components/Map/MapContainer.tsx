@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAMap } from '@/hooks/useAMap';
 import { useRoutePlanner } from '@/hooks/useRoutePlanner';
+import CorridorSuggestionCard from './components/CorridorSuggestionCard';
 import { useDeviceLayout } from '@/hooks/useDeviceLayout';
 import { useTheme } from '@/hooks/useTheme';
 import { useAvoidState } from '@/hooks/useAvoidState';
@@ -116,6 +117,9 @@ const MapContainer = () => {
     routeInfo,
     fromCache: _fromCache,
     cacheNotice,
+    corridorSuggestion,
+    applyCorridorSuggestion,
+    dismissCorridorSuggestion,
     plan,
   } = useRoutePlanner(AMap, map, plannerInput);
 
@@ -398,6 +402,14 @@ const MapContainer = () => {
     <div className="relative w-full h-full bg-surface-2 overflow-hidden text-fg-2">
       {layoutContent}
       <MapLegend />
+
+      {/* 智能六环走廊绕行推荐卡片 */}
+      <CorridorSuggestionCard
+        suggestion={corridorSuggestion}
+        onApply={applyCorridorSuggestion}
+        onDismiss={dismissCorridorSuggestion}
+        mode="float"
+      />
 
       {mode !== 'none' && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1900] pointer-events-none">

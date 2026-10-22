@@ -1,5 +1,6 @@
 // src/hooks/routePlannerTypes.ts
 import type { AvoidSize } from '@/lib/avoidance';
+import type { CorridorSuggestion } from '@/lib/corridor';
 import type {
   DebugLog,
   LngLat,
@@ -42,9 +43,15 @@ export interface RoutePlanState {
   fromCache: boolean;
   /** 缓存时效提示信息 */
   cacheNotice: string | null;
+  /** 智能六环走廊绕行建议 */
+  corridorSuggestion: CorridorSuggestion | null;
 }
 
 export interface UseRoutePlannerResult extends RoutePlanState {
+  /** 采纳并应用六环走廊建议 */
+  applyCorridorSuggestion: () => Promise<void>;
+  /** 忽略/关闭走廊建议 */
+  dismissCorridorSuggestion: () => void;
   /** 返回是否最终生成了可用路线 */
   plan: (override?: Partial<RoutePlanInput>) => Promise<boolean>;
   clearLogs: () => void;

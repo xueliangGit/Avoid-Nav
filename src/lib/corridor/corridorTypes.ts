@@ -26,8 +26,17 @@ export interface CorridorSegment {
 export interface CorridorMatchResult {
   matched: boolean;
   corridorName?: string;
+  anchors?: CorridorAnchor[];
   waypoints: Waypoint[];
   reason?: string;
+}
+
+/** 智能六环走廊提示建议 */
+export interface CorridorSuggestion {
+  corridorName: string;
+  reason: string;
+  waypoints: Waypoint[];
+  unavoidedCount: number;
 }
 
 export interface CorridorMatcherInput {
