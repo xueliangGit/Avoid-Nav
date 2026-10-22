@@ -85,6 +85,13 @@ export function useRoutePlanner(
             setRoutePath,
             setRouteInfo,
           });
+          const suggestion = checkAndBuildCorridorSuggestion({
+            current,
+            finalPts: cached.routePath,
+            finalRisks: cached.routeRisks,
+            deadRisksCount: cached.deadRisks.length,
+          });
+          setCorridorSuggestion(suggestion);
           appendLog(0, `⚡ ${evaluation.reason || '已秒开恢复历史路线'}`, 'success');
           return true;
         }
@@ -162,35 +169,46 @@ export function useRoutePlanner(
         }
 
         newKeysThisRound = [];
-        const roundRisks = scanPathRisks(points, 0.08, (cam, car, target) => {
-          const id = `${cam.lng},${cam.lat}`;
-          if (current.forcedRiskIds.has(id)) {
-            if (!master.has(id)) {
-              master.set(id, { id, lng: cam.lng, lat: cam.lat, name: cam.name, type: cam.type, risk: cam.risk, href: cam.href, direction: cam.direction });
+        const roundRisks = scanPathRisks(
+          points,
+          0.08,
+          (cam) => {
+            const id = `${cam.lng},${cam.lat}`;
+            if (current.forcedRiskIds.has(id) && !master.has(id)) {
+              master.set(id, {
+                id,
+                lng: cam.lng,
+                lat: cam.lat,
+                name: cam.name,
+                type: cam.type,
+                risk: cam.risk,
+                href: cam.href,
+                direction: cam.direction,
+              });
               newKeysThisRound.push(id);
             }
-            return;
+          },
+          current.ringFilter ?? 'all',
+          {
+            avoidDeadPoints: current.avoidDeadPoints ?? false,
+            forcedIds: current.forcedRiskIds,
+          },
+        );
+
+        // 将本轮检测到的冲突风险加入 master 集合进行多边形动态阻断
+        roundRisks.forEach((risk, key) => {
+          if (current.ignoredRiskIds.has(key)) return;
+          if (!master.has(key)) {
+            master.set(key, risk);
+            newKeysThisRound.push(key);
           }
-          if (target === null) return;
-          const diff = Math.abs(car - target);
-          const normalized = diff > 180 ? 360 - diff : diff;
-          if (normalized < 60 && !master.has(id)) {
-            master.set(id, { id, lng: cam.lng, lat: cam.lat, name: cam.name, type: cam.type, risk: cam.risk, href: cam.href, direction: cam.direction });
-            newKeysThisRound.push(id);
-          }
-        }, current.ringFilter ?? 'all', {
-          avoidDeadPoints: current.avoidDeadPoints ?? false,
-          forcedIds: current.forcedRiskIds,
         });
 
-        if (roundRisks.size === 0) {
-          appendLog(i + 1, '当前路线已完全无冲突监控，收敛成功', 'success');
-          break;
-        }
         if (newKeysThisRound.length === 0) {
-          appendLog(i + 1, '未探测到新增定向风险，规避已收敛', 'info');
+          appendLog(i + 1, '当前路线已完全无冲突监控，规避已收敛', 'success');
           break;
         }
+
         appendLog(i + 1, `识别到 ${newKeysThisRound.length} 处新冲突监控，执行动态阻断重算...`, 'warn');
       }
 
