@@ -209,7 +209,15 @@ export function useRoutePlanner(
           break;
         }
 
-        appendLog(i + 1, `识别到 ${newKeysThisRound.length} 处新冲突监控，执行动态阻断重算...`, 'warn');
+        appendLog(i + 1, `识别到 ${newKeysThisRound.length} 处新冲突，加入规避列表:`, 'warn');
+        for (const key of newKeysThisRound) {
+          const r = master.get(key);
+          if (r) {
+            const cleanName = r.name.replace(/\[\（方向待确认\）\]/g, '').trim();
+            const dirLabel = r.direction ? ` [${r.direction}]` : '';
+            appendLog(i + 1, `  ↳ 避让: ${cleanName}${dirLabel}`, 'warn');
+          }
+        }
       }
 
       setStatus('正在绘制最终最佳路线...');
