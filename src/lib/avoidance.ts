@@ -165,11 +165,23 @@ function spanAfterAddM(cluster: RiskLike[], p: RiskLike): number {
   return Math.max(widthM, heightM);
 }
 
+// 计算两个簇之间的最近距离（米）
+function clusterDistanceM(c1: RiskLike[], c2: RiskLike[]): number {
+  let min = Infinity;
+  for (const p1 of c1) {
+    for (const p2 of c2) {
+      const d = distanceKm({ lng: p1.lng, lat: p1.lat }, { lng: p2.lng, lat: p2.lat }) * 1000;
+      if (d < min) min = d;
+    }
+  }
+  return min;
+}
+
 /**
  * 把风险点聚类成尽量少的避让多边形：
- * - 仅合并「同向 + 沿路紧挨（间距 < CLUSTER_GAP_M）」的点；单簇跨度 ≤ MAX_CLUSTER_SPAN_M。
- * - 孤立点保持原来的单点矩形（带方向更精确），不被放大。
- * 这样既大幅减少多边形数量（规避高德 avoidpolygons 上限/报错），又不会把稀疏长路误封死。
+ * 1. 优先按方向和邻近度进行一级空间聚合；
+ * 2. 若总簇数超出安全阈值 (24 个)，自动启动层级自适应合并，将最邻近的簇成对聚拢；
+ * 确保即使遇到长达 90km、上百个探头的长途路线，也 100% 覆盖全部点位且多边形数量永远稳定在高德安全上限内。
  */
 export function buildRiskPolygons(
   risks: RiskLike[],
@@ -187,9 +199,9 @@ export function buildRiskPolygons(
     else buckets.set(key, [r]);
   }
 
-  const polygons: [number, number][][] = [];
+  // 1. 一级贪心聚类
+  const allClusters: { key: string; pts: RiskLike[] }[] = [];
   for (const [key, pts] of buckets) {
-    // 贪心聚类
     const clusters: RiskLike[][] = [];
     for (const p of pts) {
       let placed = false;
@@ -202,18 +214,57 @@ export function buildRiskPolygons(
       }
       if (!placed) clusters.push([p]);
     }
-
     for (const c of clusters) {
-      if (c.length === 1) {
-        const isOmni = key === 'omni';
-        polygons.push(
-          pointToAvoidPolygon(c[0]!.lng, c[0]!.lat, isOmni ? undefined : key, halfM, halfM),
-        );
-      } else {
-        polygons.push(bboxPolygon(c, halfM));
-      }
+      allClusters.push({ key, pts: c });
     }
   }
+
+  // 2. 二级层级聚拢：严格控制总多边形在 24 个以内，杜绝超出高德 API 32 区域硬上限
+  const TARGET_MAX = 24;
+  while (allClusters.length > TARGET_MAX) {
+    let bestI = -1;
+    let bestJ = -1;
+    let minD = Infinity;
+
+    // 优先合并同向且间距最近的两个簇
+    for (let i = 0; i < allClusters.length; i++) {
+      for (let j = i + 1; j < allClusters.length; j++) {
+        const sameDir = allClusters[i]!.key === allClusters[j]!.key;
+        const d = clusterDistanceM(allClusters[i]!.pts, allClusters[j]!.pts);
+        // 同向赋予优先加权
+        const effectiveD = sameDir ? d : d * 1.5;
+        if (effectiveD < minD) {
+          minD = effectiveD;
+          bestI = i;
+          bestJ = j;
+        }
+      }
+    }
+
+    if (bestI >= 0 && bestJ >= 0) {
+      const mergedPts = [...allClusters[bestI]!.pts, ...allClusters[bestJ]!.pts];
+      const mergedKey =
+        allClusters[bestI]!.key === allClusters[bestJ]!.key ? allClusters[bestI]!.key : 'omni';
+      allClusters.splice(bestJ, 1);
+      allClusters[bestI] = { key: mergedKey, pts: mergedPts };
+    } else {
+      break;
+    }
+  }
+
+  // 3. 产出最终多边形
+  const polygons: [number, number][][] = [];
+  for (const item of allClusters) {
+    if (item.pts.length === 1) {
+      const isOmni = item.key === 'omni';
+      polygons.push(
+        pointToAvoidPolygon(item.pts[0]!.lng, item.pts[0]!.lat, isOmni ? undefined : item.key, halfM, halfM),
+      );
+    } else {
+      polygons.push(bboxPolygon(item.pts, halfM));
+    }
+  }
+
   return polygons;
 }
 

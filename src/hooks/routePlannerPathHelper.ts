@@ -5,7 +5,8 @@ import type { AvoidSize } from '@/lib/avoidance';
 import type { DebugLog, LngLat, ManualAvoidArea, RouteRisk, Waypoint } from '@/lib/types';
 
 export const MAX_ROUNDS = 8;
-export const MAX_AVOID_POLYGONS = 40;
+// 高德 API setAvoidPolygons 官方硬上限为 32 个区域，安全上限设为 28
+export const MAX_AVOID_POLYGONS = 28;
 export const ROUND_DELAY_MS = 800;
 
 export function buildLog(round: number, message: string, type: DebugLog['type']): DebugLog {

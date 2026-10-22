@@ -2,7 +2,6 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { scanPathRisks } from '@/lib/avoidance';
-import type { AvoidSize } from '@/lib/avoidance';
 import { evaluateRouteCache, routeCacheStorage } from '@/lib/storage';
 import { hydrateCachedPlanToMap } from './routePlannerCacheHelper';
 import {
@@ -14,54 +13,10 @@ import {
   probeRoutePath,
   toLngLatArray,
 } from './routePlannerPathHelper';
-import type {
-  DebugLog,
-  LngLat,
-  ManualAvoidArea,
-  PlaceItem,
-  RouteRisk,
-  Waypoint,
-} from '@/lib/types';
+import type { DebugLog, LngLat, RouteRisk } from '@/lib/types';
+import type { RoutePlanInput, UseRoutePlannerResult } from './routePlannerTypes';
 
-export interface RoutePlanInput {
-  start: PlaceItem | null;
-  end: PlaceItem | null;
-  waypoints: Waypoint[];
-  ignoredRiskIds: Set<string>;
-  forcedRiskIds: Set<string>;
-  manualAvoidAreas: ManualAvoidArea[];
-  /** 自动风险点避让矩形尺寸，默认 medium */
-  riskAvoidSize: AvoidSize;
-  /** 六环内外筛选：仅避让六环内/外/全部 */
-  ringFilter: import('@/lib/types').RingFilter;
-  /** 失效点(aa=4)是否也自动避让，默认 false */
-  avoidDeadPoints: boolean;
-  /** 是否强制全量重算跳过缓存，默认 false */
-  forceFresh?: boolean;
-}
-
-export interface RoutePlanState {
-  planning: boolean;
-  status: string | null;
-  routeRisks: RouteRisk[];
-  avoidedRisks: RouteRisk[];
-  safelyIgnoredRisks: RouteRisk[];
-  /** 路线上的失效点(默认不避让)，供用户手动选择是否避让 */
-  deadRisks: RouteRisk[];
-  routePath: LngLat[];
-  logs: DebugLog[];
-  routeInfo: { distance: number; duration: number } | null;
-  /** 当前路线是否由历史缓存秒开提供 */
-  fromCache: boolean;
-  /** 缓存时效提示信息 */
-  cacheNotice: string | null;
-}
-
-export interface UseRoutePlannerResult extends RoutePlanState {
-  /** 返回是否最终生成了可用路线 */
-  plan: (override?: Partial<RoutePlanInput>) => Promise<boolean>;
-  clearLogs: () => void;
-}
+export type { RoutePlanInput, RoutePlanState, UseRoutePlannerResult } from './routePlannerTypes';
 
 export function useRoutePlanner(
   AMap: any,
@@ -166,6 +121,7 @@ export function useRoutePlanner(
     clearOverlays();
 
     const master = new Map<string, RouteRisk>();
+    let newKeysThisRound: string[] = [];
     let success = false;
 
     try {
@@ -192,9 +148,25 @@ export function useRoutePlanner(
         );
 
         if (points.length === 0) {
-          appendLog(i + 1, '路线规划失败', 'error');
+          if (i === 0) {
+            appendLog(1, '初始路线规划失败，请检查起终点连通性', 'error');
+            break;
+          }
+          // 前序轮次已成功，但本轮新避让导致无路可走（遇到物理必经卡口），回退本轮新增点并收敛
+          if (newKeysThisRound.length > 0) {
+            for (const key of newKeysThisRound) {
+              master.delete(key);
+            }
+          }
+          appendLog(
+            i + 1,
+            '遇到物理唯一必经路段，已自动保留当前最大化绕行成果',
+            'ignore',
+          );
           break;
         }
+
+        newKeysThisRound = [];
 
         const roundRisks = scanPathRisks(points, 0.08, (cam, car, target) => {
           const id = `${cam.lng},${cam.lat}`;
@@ -230,6 +202,7 @@ export function useRoutePlanner(
           if (current.ignoredRiskIds.has(key)) return;
           if (!master.has(key)) {
             master.set(key, risk);
+            newKeysThisRound.push(key);
             foundNew = true;
             appendLog(i + 1, `[发现风险] ${risk.name}`, 'success');
           }
@@ -348,10 +321,7 @@ export function useRoutePlanner(
               // 自动持久化到规划缓存
               try {
                 routeCacheStorage.save(current, {
-                  routeInfo: {
-                    distance: route.distance ?? 0,
-                    duration: route.time ?? 0,
-                  },
+                  routeInfo: { distance: route.distance ?? 0, duration: route.time ?? 0 },
                   routePath: finalPts,
                   avoidedRisks: masterList,
                   routeRisks: finalRisks,

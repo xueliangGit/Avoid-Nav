@@ -80,7 +80,8 @@ export function usePlanAction({
       return;
     }
 
-    const ok = await plan({ start: s, end: e });
+    // 用户主动点击规划按钮，意图明确为重新计算，强制跳过历史缓存
+    const ok = await plan({ start: s, end: e, forceFresh: true });
     if (!ok) {
       showToast('规划失败，请检查起终点或稍后重试', 'error');
     } else {
