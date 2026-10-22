@@ -286,6 +286,12 @@ const MapContainer = () => {
     setStart({ lng: userLocation.lng, lat: userLocation.lat, name: '我的位置' });
   }, [userLocation, setStart]);
 
+  const handleApplyCorridor = useCallback(async () => {
+    if (!corridorSuggestion) return;
+    setWaypoints(corridorSuggestion.waypoints);
+    await applyCorridorSuggestion();
+  }, [corridorSuggestion, setWaypoints, applyCorridorSuggestion]);
+
   const handleToggleAddWaypoint = useCallback(() => {
     setMode((m) => (m === 'add-waypoint' ? 'none' : 'add-waypoint'));
   }, []);
@@ -406,7 +412,7 @@ const MapContainer = () => {
       {/* 智能六环走廊绕行推荐卡片 */}
       <CorridorSuggestionCard
         suggestion={corridorSuggestion}
-        onApply={applyCorridorSuggestion}
+        onApply={handleApplyCorridor}
         onDismiss={dismissCorridorSuggestion}
         mode="float"
       />
