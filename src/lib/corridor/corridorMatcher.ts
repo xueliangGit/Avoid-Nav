@@ -30,7 +30,7 @@ export function getBeijingRegion(coord: LngLat): CorridorRegion {
 }
 
 /**
- * 针对长距离跨区出行，动态拟合安全走廊通道链并生成引导途经点
+ * 针对长距离跨区出行，动态拟合全六环（北/东/南/西）闭环骨干安全通道并生成引导途经点
  */
 export function matchSafetyCorridor(input: CorridorMatcherInput): CorridorMatchResult {
   const { start, end, userWaypoints = [] } = input;
@@ -65,38 +65,59 @@ export function matchSafetyCorridor(input: CorridorMatcherInput): CorridorMatchR
     };
   }
 
-  // 3. 判断偏东还是偏西（以经度 116.45 为分界线）
-  const isWesternBias = (start.lng + end.lng) / 2 <= 116.45;
   const anchors: CorridorAnchor[] = [];
   let corridorName = '';
 
-  // 4. 南北向长途大跨度拓扑装配
+  // 3. 北向南跨区长途调度（如昌平/顺义 -> 大兴/房山/通州）
   if (fromRegion === 'north' && toRegion === 'south') {
-    if (isWesternBias) {
-      corridorName = '北外环-西外环跨区安全走廊 (北向南)';
-      // 关键几何判断：起点若在昌平中东部（lng >= 116.28，如名佳花园/北七家），
-      // 必须先加北六环横向接驳点，避免车辆在昌平城区/北清路横切撞进探头密集区
-      if (start.lng >= 116.28) {
-        anchors.push(SAFE_ANCHORS.NORTH_6TH_XIAOTANGSHAN);
+    // 若起点在昌平中东部（lng >= 116.36，如名佳花园/北七家/小汤山）或顺义/朝阳东：
+    // 强烈优先走【东六环 + 南六环走廊】！
+    // 根本原因：从北七家向西去西六环需横穿京藏高速史各庄/北清路，必撞密集探头且多绕25公里；
+    // 走东六环转南六环，经酸枣岭一路高速向南向西，完全远离城区拥堵与探头。
+    if (start.lng >= 116.36) {
+      corridorName = '东六环-南六环跨区安全走廊 (北向南)';
+      if (start.lng < 116.55) {
+        anchors.push(SAFE_ANCHORS.NORTH_6TH_SUANZAOLING);
       }
+      anchors.push(SAFE_ANCHORS.EAST_6TH_XUXINZHUANG);
+      // 南段按终点位置精准接驳南六环
+      if (end.lng <= 116.45) {
+        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
+      } else {
+        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CHANGZIYING);
+      }
+    } else {
+      // 起点在西北部（昌平老城、南口、海淀山后）：走【西六环 + 南六环走廊】
+      corridorName = '西六环-南六环跨区安全走廊 (北向南)';
       anchors.push(SAFE_ANCHORS.WEST_6TH_DAJUESI);
       anchors.push(SAFE_ANCHORS.WEST_6TH_QINGLONGHU);
-    } else {
-      corridorName = '东外环跨区安全走廊 (北向南)';
-      anchors.push(SAFE_ANCHORS.EAST_6TH_XUXINZHUANG);
+      // 关键补齐：南六环接驳（若终点在大兴南部如野生动物园）
+      if (end.lng >= 116.2) {
+        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
+      }
     }
   } else if (fromRegion === 'south' && toRegion === 'north') {
-    if (isWesternBias) {
-      corridorName = '西外环-北外环跨区安全走廊 (南向北)';
-      anchors.push(SAFE_ANCHORS.WEST_6TH_QINGLONGHU);
-      anchors.push(SAFE_ANCHORS.WEST_6TH_DAJUESI);
-      // 终点若在昌平中东部（lng >= 116.28），引导从西六环转入北六环向东疏解
-      if (end.lng >= 116.28) {
-        anchors.push(SAFE_ANCHORS.NORTH_6TH_XIAOTANGSHAN);
+    // 4. 南向北跨区长途调度（如野生动物园/大兴/房山 -> 昌平/顺义）
+    if (end.lng >= 116.36) {
+      // 终点在昌平东部或顺义：走【南六环 + 东六环走廊】
+      corridorName = '南六环-东六环跨区安全走廊 (南向北)';
+      if (start.lng <= 116.45) {
+        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
+      } else {
+        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CHANGZIYING);
+      }
+      anchors.push(SAFE_ANCHORS.EAST_6TH_XUXINZHUANG);
+      if (end.lng < 116.55) {
+        anchors.push(SAFE_ANCHORS.NORTH_6TH_SUANZAOLING);
       }
     } else {
-      corridorName = '东外环跨区安全走廊 (南向北)';
-      anchors.push(SAFE_ANCHORS.EAST_6TH_XUXINZHUANG);
+      // 终点在西北部：走【南六环 + 西六环走廊】
+      corridorName = '南六环-西六环跨区安全走廊 (南向北)';
+      if (start.lng >= 116.2) {
+        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
+      }
+      anchors.push(SAFE_ANCHORS.WEST_6TH_QINGLONGHU);
+      anchors.push(SAFE_ANCHORS.WEST_6TH_DAJUESI);
     }
   }
 
