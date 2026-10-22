@@ -1,7 +1,8 @@
 // src/lib/corridor/corridorMatcher.ts
 import type { LngLat, Waypoint } from '@/lib/types';
-import { CORRIDOR_SEGMENTS } from './corridorData';
+import { SAFE_ANCHORS } from './corridorData';
 import type {
+  CorridorAnchor,
   CorridorMatcherInput,
   CorridorMatchResult,
   CorridorRegion,
@@ -29,7 +30,7 @@ export function getBeijingRegion(coord: LngLat): CorridorRegion {
 }
 
 /**
- * 针对长距离跨区出行，匹配最优安全走廊并自动生成引导途经点
+ * 针对长距离跨区出行，动态拟合安全走廊通道链并生成引导途经点
  */
 export function matchSafetyCorridor(input: CorridorMatcherInput): CorridorMatchResult {
   const { start, end, userWaypoints = [] } = input;
@@ -50,8 +51,13 @@ export function matchSafetyCorridor(input: CorridorMatcherInput): CorridorMatchR
   const fromRegion = getBeijingRegion(start);
   const toRegion = getBeijingRegion(end);
 
-  // 2. 仅针对直线距离 ≥ 25km 的跨大区出行生效（严格杜绝短途折返跑）
-  if (distKm < 25 || fromRegion === toRegion || fromRegion === 'central' || toRegion === 'central') {
+  // 2. 仅针对直线距离 ≥ 25km 的跨大区出行生效（杜绝短途折返）
+  if (
+    distKm < 25 ||
+    fromRegion === toRegion ||
+    fromRegion === 'central' ||
+    toRegion === 'central'
+  ) {
     return {
       matched: false,
       waypoints: [],
@@ -59,31 +65,47 @@ export function matchSafetyCorridor(input: CorridorMatcherInput): CorridorMatchR
     };
   }
 
-  // 3. 判断偏东还是偏西
+  // 3. 判断偏东还是偏西（以经度 116.45 为分界线）
   const isWesternBias = (start.lng + end.lng) / 2 <= 116.45;
+  const anchors: CorridorAnchor[] = [];
+  let corridorName = '';
 
-  const targetId =
-    fromRegion === 'north' && toRegion === 'south'
-      ? isWesternBias
-        ? 'west-outer-corridor-ns'
-        : 'east-outer-corridor-ns'
-      : fromRegion === 'south' && toRegion === 'north'
-        ? isWesternBias
-          ? 'west-outer-corridor-sn'
-          : 'east-outer-corridor-sn'
-        : null;
+  // 4. 南北向长途大跨度拓扑装配
+  if (fromRegion === 'north' && toRegion === 'south') {
+    if (isWesternBias) {
+      corridorName = '北外环-西外环跨区安全走廊 (北向南)';
+      // 关键几何判断：起点若在昌平中东部（lng >= 116.28，如名佳花园/北七家），
+      // 必须先加北六环横向接驳点，避免车辆在昌平城区/北清路横切撞进探头密集区
+      if (start.lng >= 116.28) {
+        anchors.push(SAFE_ANCHORS.NORTH_6TH_XIAOTANGSHAN);
+      }
+      anchors.push(SAFE_ANCHORS.WEST_6TH_DAJUESI);
+      anchors.push(SAFE_ANCHORS.WEST_6TH_QINGLONGHU);
+    } else {
+      corridorName = '东外环跨区安全走廊 (北向南)';
+      anchors.push(SAFE_ANCHORS.EAST_6TH_XUXINZHUANG);
+    }
+  } else if (fromRegion === 'south' && toRegion === 'north') {
+    if (isWesternBias) {
+      corridorName = '西外环-北外环跨区安全走廊 (南向北)';
+      anchors.push(SAFE_ANCHORS.WEST_6TH_QINGLONGHU);
+      anchors.push(SAFE_ANCHORS.WEST_6TH_DAJUESI);
+      // 终点若在昌平中东部（lng >= 116.28），引导从西六环转入北六环向东疏解
+      if (end.lng >= 116.28) {
+        anchors.push(SAFE_ANCHORS.NORTH_6TH_XIAOTANGSHAN);
+      }
+    } else {
+      corridorName = '东外环跨区安全走廊 (南向北)';
+      anchors.push(SAFE_ANCHORS.EAST_6TH_XUXINZHUANG);
+    }
+  }
 
-  if (!targetId) {
+  if (anchors.length === 0) {
     return { matched: false, waypoints: [] };
   }
 
-  const corridor = CORRIDOR_SEGMENTS.find((c) => c.id === targetId);
-  if (!corridor) {
-    return { matched: false, waypoints: [] };
-  }
-
-  const waypoints: Waypoint[] = corridor.anchors.map((a, idx) => ({
-    id: `corridor-${corridor.id}-${idx}`,
+  const waypoints: Waypoint[] = anchors.map((a, idx) => ({
+    id: `corridor-anchor-${idx}`,
     lng: a.lng,
     lat: a.lat,
     name: a.name,
@@ -91,8 +113,8 @@ export function matchSafetyCorridor(input: CorridorMatcherInput): CorridorMatchR
 
   return {
     matched: true,
-    corridor,
+    corridorName,
     waypoints,
-    reason: `检测到 ${distKm.toFixed(1)}km 长途跨区，已自动激活【${corridor.name}】`,
+    reason: `检测到 ${distKm.toFixed(1)}km 长途跨区，已自动激活【${corridorName}】`,
   };
 }
