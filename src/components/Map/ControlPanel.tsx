@@ -1,6 +1,7 @@
 'use client';
 
 import { Navigation, Settings, History } from 'lucide-react';
+import type { CorridorSuggestion } from '@/lib/corridor';
 import type {
   PlaceItem,
   Waypoint,
@@ -41,6 +42,9 @@ interface ControlPanelProps {
 
   // 路线
   routeInfo: RouteInfo | null;
+  corridorSuggestion?: CorridorSuggestion | null;
+  onApplyCorridor?: () => void;
+  onDismissCorridor?: () => void;
 
   // 规划状态
   planning: boolean;
@@ -93,6 +97,9 @@ const ControlPanel = ({
   ignoredRiskIds,
   forcedRiskIds,
   routeInfo,
+  corridorSuggestion,
+  onApplyCorridor,
+  onDismissCorridor,
   planning,
   status,
   hasUserLocation,
@@ -210,6 +217,9 @@ const ControlPanel = ({
         routeInfo={routeInfo}
         avoidedRiskCount={avoidedRisks.length}
         unavoidedRiskCount={routeRisks.filter((r) => !ignoredRiskIds.has(r.id)).length}
+        corridorSuggestion={corridorSuggestion}
+        onApplyCorridor={onApplyCorridor}
+        onDismissCorridor={onDismissCorridor}
         canSave={canSave}
         canNavigate={canNavigate}
         canShare={canShare}

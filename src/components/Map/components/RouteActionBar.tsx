@@ -1,6 +1,7 @@
 'use client';
 
 import { Navigation, Loader2, Search, Save, Share2 } from 'lucide-react';
+import type { CorridorSuggestion } from '@/lib/corridor';
 import type { RouteInfo } from '../ControlPanel';
 import RouteResultSummary from './RouteResultSummary';
 
@@ -9,6 +10,9 @@ interface RouteActionBarProps {
   routeInfo: RouteInfo | null;
   avoidedRiskCount?: number;
   unavoidedRiskCount?: number;
+  corridorSuggestion?: CorridorSuggestion | null;
+  onApplyCorridor?: () => void;
+  onDismissCorridor?: () => void;
   canSave: boolean;
   canNavigate: boolean;
   canShare: boolean;
@@ -38,6 +42,9 @@ export default function RouteActionBar({
   routeInfo,
   avoidedRiskCount = 0,
   unavoidedRiskCount = 0,
+  corridorSuggestion,
+  onApplyCorridor,
+  onDismissCorridor,
   canSave,
   canNavigate,
   canShare,
@@ -81,6 +88,9 @@ export default function RouteActionBar({
           routeInfo={routeInfo}
           avoidedRiskCount={avoidedRiskCount}
           unavoidedRiskCount={unavoidedRiskCount}
+          corridorSuggestion={corridorSuggestion}
+          onApplyCorridor={onApplyCorridor}
+          onDismissCorridor={onDismissCorridor}
         />
       )}
 

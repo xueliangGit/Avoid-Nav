@@ -1,13 +1,19 @@
+// src/components/Map/components/RouteResultSummary.tsx
 'use client';
 
 import { ShieldCheck, ShieldAlert, CheckCircle2, ChevronRight } from 'lucide-react';
+import type { CorridorSuggestion } from '@/lib/corridor';
 import type { RouteInfo } from '../ControlPanel';
+import CorridorSuggestionCard from './CorridorSuggestionCard';
 
 interface RouteResultSummaryProps {
   routeInfo: RouteInfo;
   avoidedRiskCount: number;
   unavoidedRiskCount: number;
   onViewDetails?: () => void;
+  corridorSuggestion?: CorridorSuggestion | null;
+  onApplyCorridor?: () => void;
+  onDismissCorridor?: () => void;
 }
 
 const formatDistance = (meters: number): string => {
@@ -30,6 +36,9 @@ export default function RouteResultSummary({
   avoidedRiskCount,
   unavoidedRiskCount,
   onViewDetails,
+  corridorSuggestion,
+  onApplyCorridor,
+  onDismissCorridor,
 }: RouteResultSummaryProps) {
   const isSafe = unavoidedRiskCount === 0;
 
@@ -89,7 +98,17 @@ export default function RouteResultSummary({
         )}
       </div>
 
-      {/* 2. 距离与预计时间指标卡 */}
+      {/* 2. 六环安全走廊智能切换内联卡片 */}
+      {!isSafe && corridorSuggestion && onApplyCorridor && onDismissCorridor && (
+        <CorridorSuggestionCard
+          suggestion={corridorSuggestion}
+          onApply={onApplyCorridor}
+          onDismiss={onDismissCorridor}
+          mode="inline"
+        />
+      )}
+
+      {/* 3. 距离与预计时间指标卡 */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-surface-2/60 border border-border-soft rounded-2xl p-3 text-center">
           <div className="text-[10px] uppercase tracking-widest text-fg-subtle font-bold mb-1">

@@ -29,7 +29,7 @@ export function getBeijingRegion(coord: LngLat): CorridorRegion {
   return 'central';
 }
 
-/** 判定当前路线是否已经实际沿用了该走廊骨干（检测路线是否经过走廊关键锚点） */
+/** 判定当前路线是否已经实际沿用了该走廊骨干 */
 export function isRouteFollowingCorridor(
   path: LngLat[],
   anchors: CorridorAnchor[],
@@ -37,7 +37,6 @@ export function isRouteFollowingCorridor(
   if (!path || path.length === 0 || !anchors || anchors.length === 0) {
     return false;
   }
-  // 路线如果经过了该走廊中的任意一个关键锚点（3.5km 空间窗口），视为已走六环走廊
   return anchors.some((anchor) =>
     path.some((p) => {
       const dLng = (p.lng - anchor.lng) * 85;
@@ -48,7 +47,7 @@ export function isRouteFollowingCorridor(
 }
 
 /**
- * 针对长距离跨区出行，动态拟合全六环（北/东/南/西）闭环骨干安全通道
+ * 针对跨区长途或东西横跨出行，动态拟合全六环（北/东/南/西）闭环骨干安全通道
  */
 export function matchSafetyCorridor(input: CorridorMatcherInput): CorridorMatchResult {
   const { start, end, userWaypoints = [] } = input;
@@ -68,70 +67,96 @@ export function matchSafetyCorridor(input: CorridorMatcherInput): CorridorMatchR
   const distKm = calcDistanceKm(start, end);
   const fromRegion = getBeijingRegion(start);
   const toRegion = getBeijingRegion(end);
-
-  // 仅针对直线距离 ≥ 25km 的跨大区出行生效
-  if (
-    distKm < 25 ||
-    fromRegion === toRegion ||
-    fromRegion === 'central' ||
-    toRegion === 'central'
-  ) {
-    return {
-      matched: false,
-      waypoints: [],
-      reason: '当前为中短途或城区出行，无需启用长途走廊锚定',
-    };
-  }
+  const deltaLng = Math.abs(end.lng - start.lng);
 
   const anchors: CorridorAnchor[] = [];
   let corridorName = '';
 
-  // 北向南跨区长途调度（昌平/顺义 -> 大兴/房山/通州）
-  if (fromRegion === 'north' && toRegion === 'south') {
-    if (start.lng >= 116.36) {
-      corridorName = '东六环-南六环跨区安全走廊';
-      if (start.lng < 116.55) {
-        anchors.push(SAFE_ANCHORS.NORTH_6TH_SUANZAOLING);
-      }
-      anchors.push(SAFE_ANCHORS.EAST_6TH_XUXINZHUANG);
-      if (end.lng <= 116.45) {
-        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
-      } else {
-        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CHANGZIYING);
-      }
+  // 场景 1：北部东西向横跨（海淀山后/永丰/航天城 <-> 昌平中东部/名佳花园/北七家/顺义）
+  // 北清路地面监控密集，北六环为天然无探头快速横跨动脉（两点直线跨度 ≥ 10km）
+  const isNorthernEastWest =
+    start.lat >= 40.02 &&
+    end.lat >= 40.02 &&
+    deltaLng >= 0.12 &&
+    ((start.lng <= 116.3 && end.lng >= 116.36) ||
+      (start.lng >= 116.36 && end.lng <= 116.3));
+
+  if (isNorthernEastWest) {
+    corridorName = '北六环横向安全走廊';
+    if (start.lng < end.lng) {
+      // 西向东（如永丰 -> 名佳花园）：引导上北六环小汤山互通向东
+      anchors.push(SAFE_ANCHORS.NORTH_6TH_XIAOTANGSHAN);
     } else {
-      corridorName = '西六环-南六环跨区安全走廊';
-      anchors.push(SAFE_ANCHORS.WEST_6TH_DAJUESI);
-      anchors.push(SAFE_ANCHORS.WEST_6TH_QINGLONGHU);
-      if (end.lng >= 116.2) {
-        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
-      }
+      // 东向西（如名佳花园 -> 永丰）：引导沿北六环小汤山 -> 沙阳路向西下
+      anchors.push(SAFE_ANCHORS.NORTH_6TH_XIAOTANGSHAN);
+      anchors.push(SAFE_ANCHORS.NORTH_6TH_SHAYANG);
     }
-  } else if (fromRegion === 'south' && toRegion === 'north') {
-    // 南向北跨区长途调度（野生动物园/大兴/房山 -> 昌平/顺义）
-    if (end.lng >= 116.36) {
-      corridorName = '南六环-东六环跨区安全走廊';
-      if (start.lng <= 116.45) {
-        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
+  } else if (
+    // 场景 2：南部东西向横跨（房山良乡 <-> 大兴黄村/亦庄）
+    start.lat <= 39.85 &&
+    end.lat <= 39.85 &&
+    deltaLng >= 0.12 &&
+    ((start.lng <= 116.22 && end.lng >= 116.32) ||
+      (start.lng >= 116.32 && end.lng <= 116.22))
+  ) {
+    corridorName = '南六环横向安全走廊';
+    anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
+  } else if (
+    // 场景 3：南北向纵向大跨区（如昌平/顺义 <-> 大兴/房山/野生动物园，直距 ≥ 25km）
+    distKm >= 25 &&
+    ((fromRegion === 'north' && toRegion === 'south') ||
+      (fromRegion === 'south' && toRegion === 'north'))
+  ) {
+    if (fromRegion === 'north' && toRegion === 'south') {
+      if (start.lng >= 116.36) {
+        corridorName = '东六环-南六环跨区安全走廊';
+        if (start.lng < 116.55) {
+          anchors.push(SAFE_ANCHORS.NORTH_6TH_SUANZAOLING);
+        }
+        anchors.push(SAFE_ANCHORS.EAST_6TH_XUXINZHUANG);
+        if (end.lng <= 116.45) {
+          anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
+        } else {
+          anchors.push(SAFE_ANCHORS.SOUTH_6TH_CHANGZIYING);
+        }
       } else {
-        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CHANGZIYING);
-      }
-      anchors.push(SAFE_ANCHORS.EAST_6TH_XUXINZHUANG);
-      if (end.lng < 116.55) {
-        anchors.push(SAFE_ANCHORS.NORTH_6TH_SUANZAOLING);
+        corridorName = '西六环-南六环跨区安全走廊';
+        anchors.push(SAFE_ANCHORS.WEST_6TH_DAJUESI);
+        anchors.push(SAFE_ANCHORS.WEST_6TH_QINGLONGHU);
+        if (end.lng >= 116.2) {
+          anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
+        }
       }
     } else {
-      corridorName = '南六环-西六环跨区安全走廊';
-      if (start.lng >= 116.2) {
-        anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
+      // 南向北
+      if (end.lng >= 116.36) {
+        corridorName = '南六环-东六环跨区安全走廊';
+        if (start.lng <= 116.45) {
+          anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
+        } else {
+          anchors.push(SAFE_ANCHORS.SOUTH_6TH_CHANGZIYING);
+        }
+        anchors.push(SAFE_ANCHORS.EAST_6TH_XUXINZHUANG);
+        if (end.lng < 116.55) {
+          anchors.push(SAFE_ANCHORS.NORTH_6TH_SUANZAOLING);
+        }
+      } else {
+        corridorName = '南六环-西六环跨区安全走廊';
+        if (start.lng >= 116.2) {
+          anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);
+        }
+        anchors.push(SAFE_ANCHORS.WEST_6TH_QINGLONGHU);
+        anchors.push(SAFE_ANCHORS.WEST_6TH_DAJUESI);
       }
-      anchors.push(SAFE_ANCHORS.WEST_6TH_QINGLONGHU);
-      anchors.push(SAFE_ANCHORS.WEST_6TH_DAJUESI);
     }
   }
 
   if (anchors.length === 0) {
-    return { matched: false, waypoints: [] };
+    return {
+      matched: false,
+      waypoints: [],
+      reason: '当前出行无需启用六环骨干走廊',
+    };
   }
 
   const waypoints: Waypoint[] = anchors.map((a, idx) => ({
@@ -146,6 +171,6 @@ export function matchSafetyCorridor(input: CorridorMatcherInput): CorridorMatchR
     corridorName,
     anchors,
     waypoints,
-    reason: `跨区直距 ${distKm.toFixed(1)}km，可经由【${corridorName}】全程避让`,
+    reason: `检测到出行跨越特征，推荐切换至【${corridorName}】彻底规避`,
   };
 }

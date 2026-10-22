@@ -7,6 +7,11 @@ import type { CorridorAnchor } from './corridorTypes';
  */
 export const SAFE_ANCHORS = {
   // 1. 北六环段
+  NORTH_6TH_SHAYANG: {
+    name: '西六环沙阳路安全互通',
+    lng: 116.155,
+    lat: 40.138,
+  } as CorridorAnchor,
   NORTH_6TH_XIAOTANGSHAN: {
     name: '北六环小汤山安全互通',
     lng: 116.395,

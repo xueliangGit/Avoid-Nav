@@ -319,6 +319,9 @@ const MapContainer = () => {
       ignoredRiskIds={ignoredRiskIds}
       forcedRiskIds={forcedRiskIds}
       routeInfo={routeInfo as RouteInfo | null}
+      corridorSuggestion={corridorSuggestion}
+      onApplyCorridor={handleApplyCorridor}
+      onDismissCorridor={dismissCorridorSuggestion}
       planning={planning}
       status={status}
       hasUserLocation={!!userLocation}
