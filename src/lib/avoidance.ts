@@ -13,13 +13,14 @@ export const MANUAL_SIZE_HALF_M = {
   medium: 30,
   large: 50,
 } as const;
-// 自动风险点避让矩形三档尺寸（半边长，米）；medium 等于原固定值
+// 自动风险点避让矩形尺寸（半边长，米）；tight 用于后半程极限穿针引线
 export const RISK_SIZE_HALF_M = {
+  tight: 15,
   small: 20,
   medium: 30,
   large: 45,
 } as const;
-export type AvoidSize = 'small' | 'medium' | 'large';
+export type AvoidSize = 'tight' | 'small' | 'medium' | 'large';
 // 聚类合并参数：仅把沿路紧挨着的同向风险点合并成一个包围盒
 const CLUSTER_GAP_M = 150; // 相邻两点间距 < 此值才并入同簇
 const MAX_CLUSTER_SPAN_M = 300; // 单簇包围盒最大边长，超出则强制拆分（防止误封长路）

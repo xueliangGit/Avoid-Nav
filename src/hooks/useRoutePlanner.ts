@@ -131,12 +131,29 @@ export function useRoutePlanner(
           await new Promise((res) => setTimeout(res, ROUND_DELAY_MS));
         }
 
+        // 自适应尺寸动态收窄：
+        // - 第 1~5 轮：以标准/用户尺寸大刀阔斧规避主干道探头
+        // - 第 6~7 轮：自适应降为 20m (small)，寻找次级道路
+        // - 第 8~10 轮：极限收窄至 15m (tight)，穿针引线释放并行辅路与微小支路
+        let roundAvoidSize: import('@/lib/avoidance').AvoidSize = current.riskAvoidSize ?? 'medium';
+        if (i >= 7) {
+          roundAvoidSize = 'tight';
+          if (i === 7) {
+            appendLog(i + 1, '进入终极极限穿针引线 (15m)，释放微小平行支路...', 'info');
+          }
+        } else if (i >= 5) {
+          roundAvoidSize = roundAvoidSize === 'large' ? 'medium' : 'small';
+          if (i === 5) {
+            appendLog(i + 1, '启动自适应收窄避让 (20m)，探测次级通路...', 'info');
+          }
+        }
+
         const polygons = buildPolygonsFromRisks(
           Array.from(master.values()),
           current.ignoredRiskIds,
           current.forcedRiskIds,
           current.manualAvoidAreas,
-          current.riskAvoidSize ?? 'medium',
+          roundAvoidSize,
         );
 
         const points = await probeRoutePath(

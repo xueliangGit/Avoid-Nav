@@ -4,7 +4,8 @@ import { buildRiskPolygons, manualAreaToPolygon } from '@/lib/avoidance';
 import type { AvoidSize } from '@/lib/avoidance';
 import type { DebugLog, LngLat, ManualAvoidArea, RouteRisk, Waypoint } from '@/lib/types';
 
-export const MAX_ROUNDS = 8;
+// 扩展探测轮次上限至 10 轮以深度攻克复杂与长途路线
+export const MAX_ROUNDS = 10;
 // 高德 API setAvoidPolygons 官方硬上限为 32 个区域，安全上限设为 28
 export const MAX_AVOID_POLYGONS = 28;
 export const ROUND_DELAY_MS = 800;
