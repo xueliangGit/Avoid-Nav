@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { scanPathRisks } from '@/lib/avoidance';
+import { matchSafetyCorridor } from '@/lib/corridor';
 import { evaluateRouteCache, routeCacheStorage } from '@/lib/storage';
 import { hydrateCachedPlanToMap } from './routePlannerCacheHelper';
 import {
@@ -120,6 +121,20 @@ export function useRoutePlanner(
 
     clearOverlays();
 
+    // 智能长途安全走廊匹配（针对 ≥25km 跨区长途自动埋设无监控安全通道，破除高德内城死局）
+    const corridorMatch = matchSafetyCorridor({
+      start: current.start,
+      end: current.end,
+      userWaypoints: current.waypoints,
+    });
+    const effectiveWaypoints = corridorMatch.matched
+      ? [...(current.waypoints || []), ...corridorMatch.waypoints]
+      : (current.waypoints || []);
+
+    if (corridorMatch.matched) {
+      appendLog(0, `⚡ ${corridorMatch.reason}，引导高德走外环畅通通道`, 'info');
+    }
+
     const master = new Map<string, RouteRisk>();
     let newKeysThisRound: string[] = [];
     let success = false;
@@ -160,7 +175,7 @@ export function useRoutePlanner(
           AMap,
           current.start,
           current.end,
-          current.waypoints,
+          effectiveWaypoints,
           polygons,
         );
 
@@ -267,8 +282,8 @@ export function useRoutePlanner(
 
       await new Promise<void>((resolve) => {
         const opts: any = {};
-        if (current.waypoints.length > 0) {
-          opts.waypoints = current.waypoints.map(
+        if (effectiveWaypoints.length > 0) {
+          opts.waypoints = effectiveWaypoints.map(
             (w) => new AMap.LngLat(w.lng, w.lat),
           );
         }
@@ -337,15 +352,18 @@ export function useRoutePlanner(
 
               // 自动持久化到规划缓存
               try {
-                routeCacheStorage.save(current, {
-                  routeInfo: { distance: route.distance ?? 0, duration: route.time ?? 0 },
-                  routePath: finalPts,
-                  avoidedRisks: masterList,
-                  routeRisks: finalRisks,
-                  safelyIgnoredRisks: Array.from(safelyIgnoredMap.values()),
-                  deadRisks: Array.from(deadMap.values()),
-                  finalPolygons,
-                });
+                routeCacheStorage.save(
+                  { ...current, waypoints: effectiveWaypoints },
+                  {
+                    routeInfo: { distance: route.distance ?? 0, duration: route.time ?? 0 },
+                    routePath: finalPts,
+                    avoidedRisks: masterList,
+                    routeRisks: finalRisks,
+                    safelyIgnoredRisks: Array.from(safelyIgnoredMap.values()),
+                    deadRisks: Array.from(deadMap.values()),
+                    finalPolygons,
+                  },
+                );
               } catch {
                 // 安全容错
               }
