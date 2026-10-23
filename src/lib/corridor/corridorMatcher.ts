@@ -72,32 +72,31 @@ export function matchSafetyCorridor(input: CorridorMatcherInput): CorridorMatchR
   const anchors: CorridorAnchor[] = [];
   let corridorName = '';
 
-  // 场景 1：北部东西向横跨（海淀山后/永丰/航天城 <-> 昌平中东部/名佳花园/北七家/顺义）
-  // 北清路地面监控密集，北六环为天然无探头快速横跨动脉（两点直线跨度 ≥ 10km）
+  // 场景 1：北部东西向大跨度长途横跨（如海淀山后/永丰 <-> 顺义核心城区/机场，直距 ≥ 22km）
+  // 短途出行(如永丰到名佳花园 15km)地面有完备支路且无冲突，绝不误导绕行六环造成折返
   const isNorthernEastWest =
+    distKm >= 22 &&
     start.lat >= 40.02 &&
     end.lat >= 40.02 &&
-    deltaLng >= 0.12 &&
-    ((start.lng <= 116.3 && end.lng >= 116.36) ||
-      (start.lng >= 116.36 && end.lng <= 116.3));
+    deltaLng >= 0.2 &&
+    ((start.lng <= 116.3 && end.lng >= 116.48) ||
+      (start.lng >= 116.48 && end.lng <= 116.3));
 
   if (isNorthernEastWest) {
     corridorName = '北六环横向安全走廊';
     if (start.lng < end.lng) {
-      // 西向东（如永丰 -> 名佳花园）：引导上北六环小汤山互通向东
-      anchors.push(SAFE_ANCHORS.NORTH_6TH_XIAOTANGSHAN);
+      anchors.push(SAFE_ANCHORS.NORTH_6TH_SUANZAOLING);
     } else {
-      // 东向西（如名佳花园 -> 永丰）：引导沿北六环小汤山 -> 沙阳路向西下
-      anchors.push(SAFE_ANCHORS.NORTH_6TH_XIAOTANGSHAN);
       anchors.push(SAFE_ANCHORS.NORTH_6TH_SHAYANG);
     }
   } else if (
-    // 场景 2：南部东西向横跨（房山良乡 <-> 大兴黄村/亦庄）
+    // 场景 2：南部东西向大跨度长途横跨（房山良乡 <-> 亦庄东部/副中心，直距 ≥ 25km）
+    distKm >= 25 &&
     start.lat <= 39.85 &&
     end.lat <= 39.85 &&
-    deltaLng >= 0.12 &&
-    ((start.lng <= 116.22 && end.lng >= 116.32) ||
-      (start.lng >= 116.32 && end.lng <= 116.22))
+    deltaLng >= 0.2 &&
+    ((start.lng <= 116.2 && end.lng >= 116.45) ||
+      (start.lng >= 116.45 && end.lng <= 116.2))
   ) {
     corridorName = '南六环横向安全走廊';
     anchors.push(SAFE_ANCHORS.SOUTH_6TH_CIGEZHUANG);

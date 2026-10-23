@@ -35,6 +35,7 @@ export function hydrateCachedPlanToMap(
   // 2. 在地图上还原避让多边形包围盒
   const newOverlays: any[] = [];
   if (cache.finalPolygons && cache.finalPolygons.length > 0) {
+    const avoidedList = cache.avoidedRisks || [];
     for (const polyPath of cache.finalPolygons) {
       const poly = new AMap.Polygon({
         path: polyPath.map(([lng, lat]) => new AMap.LngLat(lng, lat)),
@@ -42,6 +43,40 @@ export function hydrateCachedPlanToMap(
         fillOpacity: 0.18,
         strokeColor: '#ef4444',
         strokeWeight: 1,
+        bubble: true,
+      });
+      let nearestRiskId = '';
+      if (avoidedList.length > 0) {
+        let nearest = avoidedList[0]!;
+        let minD = Infinity;
+        const pLng = polyPath[0]?.[0] ?? 0;
+        const pLat = polyPath[0]?.[1] ?? 0;
+        for (const r of avoidedList) {
+          const d = Math.hypot(r.lng - pLng, r.lat - pLat);
+          if (d < minD) {
+            minD = d;
+            nearest = r;
+          }
+        }
+        nearestRiskId = nearest.id;
+      }
+      poly._riskId = nearestRiskId;
+
+      poly.on('click', (e: any) => {
+        const clickLng = e.lnglat?.getLng?.() ?? e.lnglat?.lng;
+        const clickLat = e.lnglat?.getLat?.() ?? e.lnglat?.lat;
+        if (clickLng && clickLat && avoidedList.length > 0) {
+          let nearest = avoidedList[0]!;
+          let minD = Infinity;
+          for (const r of avoidedList) {
+            const d = Math.hypot(r.lng - clickLng, r.lat - clickLat);
+            if (d < minD) {
+              minD = d;
+              nearest = r;
+            }
+          }
+          (window as any).__OPEN_CAMERA_POPUP__?.(nearest);
+        }
       });
       map.add(poly);
       newOverlays.push(poly);

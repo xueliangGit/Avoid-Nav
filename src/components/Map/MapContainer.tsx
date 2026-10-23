@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useAvoidState } from '@/hooks/useAvoidState';
 import { useMapInteractions } from '@/hooks/useMapInteractions';
 import { useMapRiskFocus } from '@/hooks/useMapRiskFocus';
+import { useCameraPopup } from '@/hooks/useCameraPopup';
 import { useNavigationAction } from '@/hooks/useNavigationAction';
 import { useRouteSharing } from '@/hooks/useRouteSharing';
 import { useRouteStorageActions } from '@/hooks/useRouteStorageActions';
@@ -28,6 +29,8 @@ import SettingsDrawer from '@/components/shared/SettingsDrawer';
 import SaveRouteDialog from '@/components/History/SaveRouteDialog';
 import ChangelogModal from '@/components/shared/ChangelogModal';
 import MapLegend from './components/MapLegend';
+import PendingReplanBar from './components/PendingReplanBar';
+import CameraDetailModal from './components/CameraDetailModal';
 
 const MAP_CONTAINER_ID = 'container';
 
@@ -62,7 +65,18 @@ const MapContainer = () => {
 
   // 主题与地图底图
   const { theme, isDark, setTheme } = useTheme();
-  const { AMap, map, ready, userLocation, error } = useAMap(MAP_CONTAINER_ID, ringFilter, isDark);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pointClickRef = useRef<(d: any) => void>(() => {});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handlePointClick = useCallback((d: any) => {
+    pointClickRef.current?.(d);
+  }, []);
+  const { AMap, map, ready, userLocation, error } = useAMap(
+    MAP_CONTAINER_ID,
+    ringFilter,
+    isDark,
+    handlePointClick,
+  );
 
   // 交互模式与弹窗控制
   const [mode, setMode] = useState<InteractionMode>('none');
@@ -123,6 +137,74 @@ const MapContainer = () => {
     plan,
   } = useRoutePlanner(AMap, map, plannerInput);
 
+  const [hasPendingReplan, setHasPendingReplan] = useState(false);
+  const [cameraDetail, setCameraDetail] = useState<{ open: boolean; url: string | null; title: string }>({
+    open: false,
+    url: null,
+    title: '',
+  });
+
+  const handleOpenDetailModal = useCallback((url: string, title: string) => {
+    setCameraDetail({ open: true, url, title });
+  }, []);
+
+  const handleCloseDetailModal = useCallback(() => {
+    setCameraDetail((prev) => ({ ...prev, open: false }));
+  }, []);
+
+  const handleCameraSettingChange = useCallback(() => {
+    if (start && end) {
+      setHasPendingReplan(true);
+    }
+  }, [start, end]);
+
+  const handleApplyPendingReplan = useCallback(async () => {
+    setHasPendingReplan(false);
+    await plan({ forceFresh: true });
+  }, [plan]);
+
+  const { openCameraPopup } = useCameraPopup({
+    AMap,
+    map,
+    ignoredRiskIds,
+    avoidedRisks,
+    onToggleIgnoreRisk: handleToggleIgnoreRisk,
+    onChanged: handleCameraSettingChange,
+    onOpenDetail: handleOpenDetailModal,
+    showToast,
+  });
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pointClickRef.current = (d: any) => {
+      if (!d || !d.lnglat) return;
+      openCameraPopup({
+        lng: d.lnglat[0],
+        lat: d.lnglat[1],
+        name: d.name,
+        href: d.href,
+        type: d._type,
+        direction: d._direction,
+        picCount: d._picCount,
+      });
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__OPEN_CAMERA_POPUP__ = (risk: import('@/lib/types').RouteRisk) => {
+      openCameraPopup({
+        lng: risk.lng,
+        lat: risk.lat,
+        name: risk.name,
+        href: risk.href,
+        type: risk.type,
+        direction: risk.direction,
+      });
+    };
+    return () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (window as any).__OPEN_CAMERA_POPUP__;
+    };
+  }, [openCameraPopup]);
+
   // 当选择的点位命中历史规划时，自动秒开展示；若过时则后台自动刷新
   const lastAutoPlannedKeyRef = useRef<string>('');
   useEffect(() => {
@@ -173,8 +255,16 @@ const MapContainer = () => {
       // 点击避让点时，聚焦到地图位置并自动收起移动端弹窗，让用户清晰看到位置
       rawFocusRisk(risk);
       setMobilePlannerOpen(false);
+      openCameraPopup({
+        lng: risk.lng,
+        lat: risk.lat,
+        name: risk.name,
+        href: risk.href,
+        type: risk.type,
+        direction: risk.direction,
+      });
     },
-    [rawFocusRisk],
+    [rawFocusRisk, openCameraPopup],
   );
 
   const {
@@ -477,6 +567,19 @@ const MapContainer = () => {
         message={toast.message}
         variant={toast.variant}
         onClose={closeToast}
+      />
+
+      <PendingReplanBar
+        visible={hasPendingReplan && Boolean(start && end)}
+        planning={planning}
+        onReplan={handleApplyPendingReplan}
+      />
+
+      <CameraDetailModal
+        open={cameraDetail.open}
+        url={cameraDetail.url}
+        title={cameraDetail.title}
+        onClose={handleCloseDetailModal}
       />
 
       <WechatGuide open={wechatGuideOpen} onClose={() => setWechatGuideOpen(false)} />

@@ -21,9 +21,15 @@ export function checkAndBuildCorridorSuggestion(
   input: CheckCorridorInput,
 ): CorridorSuggestion | null {
   const { current, finalPts, finalRisks, deadRisksCount } = input;
-  const unavoidedCount = Math.max(finalRisks.length, deadRisksCount);
 
-  // 1. 如果当前路线已经全程避让成功，无任何残留风险，则无需走六环
+  // 1. 严格计算真正无法避开的在用冲突监控：
+  // 默认情况下失效点(deadRisks)已停拍不构成违章风险，绝不能算作未避让；
+  // 只有当用户主动勾选了 avoidDeadPoints 时，才把 deadRisks 计入未避让
+  const unavoidedCount = current.avoidDeadPoints
+    ? finalRisks.length + deadRisksCount
+    : finalRisks.length;
+
+  // 如果当前路线已经全程避让成功（0 处在用冲突），100% 绝对不弹出六环推荐
   if (unavoidedCount === 0) {
     return null;
   }

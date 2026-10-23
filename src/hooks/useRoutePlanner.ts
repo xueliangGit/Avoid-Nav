@@ -1,6 +1,6 @@
 // src/hooks/useRoutePlanner.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { scanPathRisks } from '@/lib/avoidance';
 import type { CorridorSuggestion } from '@/lib/corridor';
 import {
@@ -43,6 +43,37 @@ export function useRoutePlanner(
   const polygonOverlaysRef = useRef<any[]>([]);
   const inputRef = useRef<RoutePlanInput>(input);
   inputRef.current = input;
+  const dismissedEndpointsRef = useRef<Set<string>>(new Set());
+
+  const getEndpointKey = (c: RoutePlanInput) => {
+    if (!c.start || !c.end) return '';
+    return `${c.start.lng.toFixed(4)},${c.start.lat.toFixed(4)}->${c.end.lng.toFixed(4)},${c.end.lat.toFixed(4)}`;
+  };
+
+  // 纯客户端多边形视觉联动：当某个避让点被忽略时，对应红框立即置灰虚线，提供即时视觉反馈
+  useEffect(() => {
+    for (const poly of polygonOverlaysRef.current) {
+      if (!poly || !poly._riskId || typeof poly.setOptions !== 'function') continue;
+      const isIgnored = input.ignoredRiskIds.has(poly._riskId);
+      if (isIgnored) {
+        poly.setOptions({
+          fillColor: '#94a3b8',
+          fillOpacity: 0.06,
+          strokeColor: '#94a3b8',
+          strokeOpacity: 0.4,
+          strokeStyle: 'dashed',
+        });
+      } else {
+        poly.setOptions({
+          fillColor: '#ef4444',
+          fillOpacity: 0.18,
+          strokeColor: '#ef4444',
+          strokeOpacity: 1,
+          strokeStyle: 'solid',
+        });
+      }
+    }
+  }, [input.ignoredRiskIds]);
 
   const appendLog = useCallback((round: number, message: string, type: DebugLog['type']) => {
     setLogs((prev) => [...prev, buildLog(round, message, type)]);
@@ -85,12 +116,15 @@ export function useRoutePlanner(
             setRoutePath,
             setRouteInfo,
           });
-          const suggestion = checkAndBuildCorridorSuggestion({
-            current,
-            finalPts: cached.routePath,
-            finalRisks: cached.routeRisks,
-            deadRisksCount: cached.deadRisks.length,
-          });
+          const isDismissed = dismissedEndpointsRef.current.has(getEndpointKey(current));
+          const suggestion = isDismissed
+            ? null
+            : checkAndBuildCorridorSuggestion({
+                current,
+                finalPts: cached.routePath,
+                finalRisks: cached.routeRisks,
+                deadRisksCount: cached.deadRisks.length,
+              });
           setCorridorSuggestion(suggestion);
           appendLog(0, `⚡ ${evaluation.reason || '已秒开恢复历史路线'}`, 'success');
           return true;
@@ -251,6 +285,42 @@ export function useRoutePlanner(
             fillOpacity: 0.18,
             strokeColor: '#ef4444',
             strokeWeight: 1,
+            bubble: true,
+          });
+          let nearestRiskId = '';
+          if (masterList.length > 0) {
+            let nearest = masterList[0]!;
+            let minD = Infinity;
+            // 计算多边形中心点与监控点的距离
+            const pLng = polyPath[0]?.[0] ?? 0;
+            const pLat = polyPath[0]?.[1] ?? 0;
+            for (const r of masterList) {
+              const d = Math.hypot(r.lng - pLng, r.lat - pLat);
+              if (d < minD) {
+                minD = d;
+                nearest = r;
+              }
+            }
+            nearestRiskId = nearest.id;
+          }
+          poly._riskId = nearestRiskId;
+
+          poly.on('click', (e: any) => {
+            const clickLng = e.lnglat?.getLng?.() ?? e.lnglat?.lng;
+            const clickLat = e.lnglat?.getLat?.() ?? e.lnglat?.lat;
+            if (clickLng && clickLat && masterList.length > 0) {
+              let nearest = masterList[0]!;
+              let minD = Infinity;
+              for (const r of masterList) {
+                const d = Math.hypot(r.lng - clickLng, r.lat - clickLat);
+                if (d < minD) {
+                  minD = d;
+                  nearest = r;
+                }
+              }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (window as any).__OPEN_CAMERA_POPUP__?.(nearest);
+            }
           });
           map.add(poly);
           polygonOverlaysRef.current.push(poly);
@@ -285,12 +355,15 @@ export function useRoutePlanner(
               setFromCache(false);
               setCacheNotice(null);
 
-              const suggestion = checkAndBuildCorridorSuggestion({
-                current,
-                finalPts: result.finalPts,
-                finalRisks: result.finalRisks,
-                deadRisksCount: result.deadRisks.length,
-              });
+              const isDismissed = dismissedEndpointsRef.current.has(getEndpointKey(current));
+              const suggestion = isDismissed
+                ? null
+                : checkAndBuildCorridorSuggestion({
+                    current,
+                    finalPts: result.finalPts,
+                    finalRisks: result.finalRisks,
+                    deadRisksCount: result.deadRisks.length,
+                  });
               setCorridorSuggestion(suggestion);
               if (suggestion) {
                 appendLog(
@@ -375,6 +448,10 @@ export function useRoutePlanner(
   }, [corridorSuggestion, plan]);
 
   const dismissCorridorSuggestion = useCallback(() => {
+    const key = getEndpointKey(inputRef.current);
+    if (key) {
+      dismissedEndpointsRef.current.add(key);
+    }
     setCorridorSuggestion(null);
   }, []);
 

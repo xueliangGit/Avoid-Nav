@@ -88,7 +88,12 @@ function buildPopupHtml(
   `;
 }
 
-export function useAMap(containerId: string, ringFilter: RingFilter = 'all', isDark: boolean = false): UseAMapResult {
+export function useAMap(
+  containerId: string,
+  ringFilter: RingFilter = 'all',
+  isDark: boolean = false,
+  onPointClick?: (pointData: any) => void,
+): UseAMapResult {
   const [AMap, setAMap] = useState<any>(null);
   const [map, setMap] = useState<any>(null);
   const [ready, setReady] = useState(false);
@@ -99,6 +104,8 @@ export function useAMap(containerId: string, ringFilter: RingFilter = 'all', isD
   const mapInstanceRef = useRef<any>(null);
   const massMarksRef = useRef<any>(null);
   const allMassDataRef = useRef<any[]>([]);
+  const onPointClickRef = useRef(onPointClick);
+  onPointClickRef.current = onPointClick;
 
   useEffect(() => {
     if (didInitRef.current) return;
@@ -173,6 +180,10 @@ export function useAMap(containerId: string, ringFilter: RingFilter = 'all', isD
         });
         massMarks.on('click', (e: any) => {
           const d = e.data ?? {};
+          if (onPointClickRef.current) {
+            onPointClickRef.current(d);
+            return;
+          }
           infoWindow.setContent(
             buildPopupHtml(
               d.name ?? '',

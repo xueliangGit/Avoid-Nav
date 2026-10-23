@@ -269,7 +269,7 @@ export function buildRiskPolygons(
   return polygons;
 }
 
-function toRiskId(lng: number, lat: number): string {
+export function toRiskId(lng: number, lat: number): string {
   return `${lng},${lat}`;
 }
 
