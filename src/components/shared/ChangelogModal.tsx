@@ -67,9 +67,8 @@ export default function ChangelogModal({ open, onClose }: ChangelogModalProps) {
           </button>
         </div>
 
-        {/* 滚动内容区 */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-          {/* 当前数据元信息概览卡片 */}
+        {/* 固定区域：当前数据元信息概览卡片 */}
+        <div className="px-6 pt-5 pb-2 shrink-0 space-y-3">
           <div className="p-4 rounded-2xl bg-surface-2 border border-border-soft space-y-3">
             <div className="flex items-center justify-between text-xs font-bold text-fg">
               <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
@@ -101,10 +100,12 @@ export default function ChangelogModal({ open, onClose }: ChangelogModalProps) {
             </div>
           </div>
 
-          {/* 更新日志时间线 */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-bold text-fg-subtle uppercase tracking-wider">历史变更记录</h4>
-            <div className="space-y-5 border-l-2 border-border-soft ml-2 pl-4">
+          <h4 className="text-xs font-bold text-fg-subtle uppercase tracking-wider pt-1">历史变更记录</h4>
+        </div>
+
+        {/* 独立滚动区域：更新日志时间线 */}
+        <div className="flex-1 overflow-y-auto px-6 pb-6 pt-1 custom-scrollbar">
+          <div className="space-y-5 border-l-2 border-border-soft ml-2 pl-4">
               {CHANGELOG_LIST.map((item, idx) => {
                 const isData = item.type === 'data';
                 return (
@@ -143,7 +144,6 @@ export default function ChangelogModal({ open, onClose }: ChangelogModalProps) {
                 );
               })}
             </div>
-          </div>
         </div>
 
         {/* 底部按钮 */}
