@@ -33,7 +33,8 @@ function refineItem(item) {
     const href = item.href || '';
     const name = item.name || '';
     const direction = item.direction || extractDirection(name);
-    return [lng, lat, aa, risk, href, name, direction];
+    const picCount = Number(item.picCount) || 0;
+    return [lng, lat, aa, risk, href, name, direction, picCount];
   }
 
   // 2. 原生新 API 格式 (兜底)
@@ -45,7 +46,8 @@ function refineItem(item) {
     const aa = isOut ? '6' : '5';
     const risk = AA_MAP[aa]?.risk ?? 2;
     const href = item.Id ? `https://www.jjz365.cn/XMap/ToDiscuss/${item.Id}` : '';
-    return [lng, lat, aa, risk, href, name, extractDirection(name)];
+    const picCount = Number(item.PicCount) || 0;
+    return [lng, lat, aa, risk, href, name, extractDirection(name), picCount];
   }
 
   return null;
