@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { X, Settings, Check, Sun, Moon, Monitor, FileText, ChevronRight } from 'lucide-react';
+import { X, Settings, Check, Sun, Moon, Monitor, FileText, ChevronRight, HelpCircle } from 'lucide-react';
 import type { ManualAvoidSize, RingFilter } from '@/lib/types';
 import type { Theme } from '@/lib/theme';
 import { getDataMeta } from '@/lib/changelog';
@@ -20,6 +20,7 @@ interface Props {
   onClose: () => void;
   onOpenChangelog?: () => void;
   hasNewUpdate?: boolean;
+  onOpenHelp?: () => void;
 }
 
 const SIZE_LABELS: Record<ManualAvoidSize, { label: string; desc: string }> = {
@@ -48,6 +49,7 @@ export default function SettingsDrawer({
   onClose,
   onOpenChangelog,
   hasNewUpdate,
+  onOpenHelp,
 }: Props) {
   const meta = getDataMeta();
   useEffect(() => {
@@ -123,6 +125,36 @@ export default function SettingsDrawer({
                     </div>
                     <span className="text-[10px] text-fg-muted mt-0.5 truncate">
                       已收录 {meta.pointCount.toLocaleString()} 处点位 · 更新于 {meta.formattedDate}
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-fg-subtle group-hover:text-fg group-hover:translate-x-0.5 transition shrink-0" />
+              </button>
+            </section>
+          )}
+
+          {/* 使用帮助与指南 */}
+          {onOpenHelp && (
+            <section>
+              <h4 className="text-[10px] font-black text-fg-subtle uppercase tracking-widest mb-3">
+                帮助与避让指南
+              </h4>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenHelp();
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-border-soft bg-overlay-soft hover:bg-overlay text-left transition group"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500 group-hover:bg-amber-600 group-hover:text-white transition shrink-0">
+                    <HelpCircle className="w-4 h-4" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-fg">使用帮助与常见问题</span>
+                    <span className="text-[10px] text-fg-muted mt-0.5 truncate">
+                      高架桥与主辅路上下道说明 · 避让规则 · 导航须知
                     </span>
                   </div>
                 </div>
@@ -319,6 +351,9 @@ export default function SettingsDrawer({
                   <span className="text-[11px] text-fg-muted">已核实停拍，系统默认不绕路</span>
                 </div>
               </div>
+            </div>
+            <div className="mt-2.5 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
+              💡 <strong>高架与主辅路说明：</strong>由于地图为二维坐标，无法自动区分高架桥上与地面辅路/上下道。如确认走地面不抓拍，可在规划后点击探头选择【忽略此点】。
             </div>
           </section>
         </div>

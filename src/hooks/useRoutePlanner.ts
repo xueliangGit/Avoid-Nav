@@ -247,7 +247,7 @@ export function useRoutePlanner(
         for (const key of newKeysThisRound) {
           const r = master.get(key);
           if (r) {
-            const cleanName = r.name.replace(/\[\（方向待确认\）\]/g, '').trim();
+            const cleanName = r.name.replace(/\[（方向待确认）\]/g, '').trim();
             const dirLabel = r.direction ? ` [${r.direction}]` : '';
             appendLog(i + 1, `  ↳ 避让: ${cleanName}${dirLabel}`, 'warn');
           }

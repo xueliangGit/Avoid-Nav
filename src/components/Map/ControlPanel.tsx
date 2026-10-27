@@ -1,6 +1,6 @@
 'use client';
 
-import { Navigation, Settings, History } from 'lucide-react';
+import { Navigation, Settings, History, HelpCircle } from 'lucide-react';
 import type { CorridorSuggestion } from '@/lib/corridor';
 import type {
   PlaceItem,
@@ -80,6 +80,7 @@ interface ControlPanelProps {
   canShare: boolean;
   onOpenChangelog?: () => void;
   hasNewUpdate?: boolean;
+  onOpenHelp?: () => void;
 
   // 布局模式：constrained = 桌面端固定高度容器（内部滚动）；flow = 手机端自然流式（外层滚动）
   variant?: 'constrained' | 'flow';
@@ -127,6 +128,7 @@ const ControlPanel = ({
   canShare,
   onOpenChangelog,
   hasNewUpdate = false,
+  onOpenHelp,
   variant = 'constrained',
 }: ControlPanelProps) => {
   const isFlow = variant === 'flow';
@@ -158,6 +160,17 @@ const ControlPanel = ({
             <span className="text-[10px] bg-indigo-600 text-white px-2 py-1 rounded-lg animate-pulse font-bold tracking-widest shrink-0">
               {status}
             </span>
+          )}
+          {onOpenHelp && (
+            <button
+              type="button"
+              onClick={onOpenHelp}
+              className="p-2 rounded-xl bg-overlay-soft hover:bg-overlay text-fg-2 hover:text-fg transition shrink-0"
+              aria-label="使用帮助"
+              title="使用帮助与上下道说明"
+            >
+              <HelpCircle className="w-4 h-4" />
+            </button>
           )}
           <button
             type="button"

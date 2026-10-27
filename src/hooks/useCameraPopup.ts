@@ -88,7 +88,7 @@ export function useCameraPopup({
       let isIgnored = activeIgnoredSetRef.current.has(id);
 
       const typeInfo = TYPE_NAMES[String(type)] || { label: '交通监控点', color: '#2563eb' };
-      const cleanName = name.replace(/\[\（方向待确认\）\]/g, '').trim();
+      const cleanName = name.replace(/\[（方向待确认）\]/g, '').trim();
       const targetHref = href
         ? href.startsWith('http')
           ? href

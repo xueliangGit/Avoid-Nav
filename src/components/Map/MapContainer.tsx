@@ -28,6 +28,7 @@ import HistoryDrawer from '@/components/History/HistoryDrawer';
 import SettingsDrawer from '@/components/shared/SettingsDrawer';
 import SaveRouteDialog from '@/components/History/SaveRouteDialog';
 import ChangelogModal from '@/components/shared/ChangelogModal';
+import HelpModal from '@/components/shared/HelpModal';
 import MapLegend from './components/MapLegend';
 import PendingReplanBar from './components/PendingReplanBar';
 import CameraDetailModal from './components/CameraDetailModal';
@@ -83,6 +84,7 @@ const MapContainer = () => {
   const [pendingAvoidSize, setPendingAvoidSize] = useState<ManualAvoidSize>('medium');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const { hasNewUpdate, markAsSeen } = useChangelogNotice();
 
   const handleOpenChangelog = useCallback(() => {
@@ -425,6 +427,7 @@ const MapContainer = () => {
       onOpenSettings={() => setSettingsOpen(true)}
       onOpenChangelog={handleOpenChangelog}
       hasNewUpdate={hasNewUpdate}
+      onOpenHelp={() => setHelpOpen(true)}
       onPlan={handlePlan}
       onToggleIgnoreRisk={handleToggleIgnoreRisk}
       onToggleForceRisk={handleToggleForceRisk}
@@ -539,6 +542,7 @@ const MapContainer = () => {
         onChangeTheme={setTheme}
         onOpenChangelog={handleOpenChangelog}
         hasNewUpdate={hasNewUpdate}
+        onOpenHelp={() => setHelpOpen(true)}
         onClose={() => setSettingsOpen(false)}
       />
 
@@ -584,6 +588,7 @@ const MapContainer = () => {
 
       <WechatGuide open={wechatGuideOpen} onClose={() => setWechatGuideOpen(false)} />
       <ChangelogModal open={changelogOpen} onClose={() => setChangelogOpen(false)} />
+      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 };

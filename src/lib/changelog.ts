@@ -43,6 +43,17 @@ export function getDataMeta(): DataMeta {
 
 export const CHANGELOG_LIST: ChangelogItem[] = [
   {
+    version: 'v1.4.2',
+    date: '2026-10-27',
+    title: '新增使用帮助中心与高架主辅路上下道专项说明',
+    type: 'feature',
+    details: [
+      '新增【使用帮助与避让指南】中心：在设置抽屉与控制面板提供一键直达入口。',
+      '特别说明高架桥与主辅路上下道：明确二维平面投影缺乏垂直Z轴感知、无法自动区分桥上与地面的原理，并给出点击忽略与途经点引导方案。',
+      '整合方向冲突匹配逻辑、外跳高德 App 导航注意事项以及限行监控类型速查。',
+    ],
+  },
+  {
     version: '数据更新',
     date: '2026-10-27',
     title: '最新进京证与限行监控点位刷新',
