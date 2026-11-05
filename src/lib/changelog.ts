@@ -44,6 +44,17 @@ export function getDataMeta(): DataMeta {
 export const CHANGELOG_LIST: ChangelogItem[] = [
   {
     version: '数据更新',
+    date: '2026-11-05',
+    title: '最新进京证与限行监控点位刷新',
+    type: 'data',
+    details: [
+      '监控点位总数刷新至 7,169 处（净增 1 处）。',
+      '新增点位：“【六环外】公韩路鲍庄路口南 [南向北]”、“北清路与辛庄桥交叉口东 [东向西]右转车道”。',
+      '增补进京主要干道与六环周边最新管控监控点位。',
+    ],
+  },
+  {
+    version: '数据更新',
     date: '2026-11-04',
     title: '最新进京证与限行监控点位刷新',
     type: 'data',
