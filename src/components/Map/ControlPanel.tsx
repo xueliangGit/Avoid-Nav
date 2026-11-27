@@ -8,8 +8,10 @@ import type {
   ManualAvoidArea,
   ManualAvoidSize,
   RouteRisk,
+  RingFilter,
 } from '@/lib/types';
 import UpdateBadge from '@/components/shared/UpdateBadge';
+import RingFilterSwitch from './components/RingFilterSwitch';
 import EndpointInputs from './components/EndpointInputs';
 import WaypointList from './components/WaypointList';
 import AvoidAreaList from './components/AvoidAreaList';
@@ -82,6 +84,10 @@ interface ControlPanelProps {
   hasNewUpdate?: boolean;
   onOpenHelp?: () => void;
 
+  // 六环内外筛选
+  ringFilter?: RingFilter;
+  onChangeRingFilter?: (filter: RingFilter) => void;
+
   // 布局模式：constrained = 桌面端固定高度容器（内部滚动）；flow = 手机端自然流式（外层滚动）
   variant?: 'constrained' | 'flow';
 }
@@ -129,6 +135,8 @@ const ControlPanel = ({
   onOpenChangelog,
   hasNewUpdate = false,
   onOpenHelp,
+  ringFilter,
+  onChangeRingFilter,
   variant = 'constrained',
 }: ControlPanelProps) => {
   const isFlow = variant === 'flow';
@@ -195,6 +203,15 @@ const ControlPanel = ({
           </button>
         </div>
       </div>
+
+      {/* 监控显示与避让范围快捷切换 */}
+      {onChangeRingFilter && ringFilter && (
+        <RingFilterSwitch
+          value={ringFilter}
+          onChange={onChangeRingFilter}
+          variant="panel"
+        />
+      )}
 
       {/* 起点 / 终点输入 */}
       <EndpointInputs

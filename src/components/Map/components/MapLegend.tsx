@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Info, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
+import type { RingFilter } from '@/lib/types';
 
 interface LegendItem {
   iconUrl: string;
@@ -55,8 +56,13 @@ const LEGEND_ITEMS: LegendItem[] = [
   },
 ];
 
-export default function MapLegend() {
+interface LegendProps {
+  ringFilter?: RingFilter;
+}
+
+export default function MapLegend({ ringFilter = 'inside' }: LegendProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const ringLabel = ringFilter === 'inside' ? '六环内' : ringFilter === 'outside' ? '六环外' : '全部';
 
   return (
     <div className="absolute right-4 bottom-24 z-[1800] select-none pointer-events-auto">
@@ -66,7 +72,8 @@ export default function MapLegend() {
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center space-x-1.5 text-xs font-black text-slate-800 dark:text-slate-100">
               <ShieldCheck className="w-4 h-4 text-primary" />
-              <span>监控点位图例说明</span>
+              <span>监控点位图例</span>
+              <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">（当前：{ringLabel}）</span>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -121,6 +128,9 @@ export default function MapLegend() {
       >
         <Info className="w-3.5 h-3.5 text-primary" />
         <span>点位图例</span>
+        <span className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/20 px-1.5 py-0.5 rounded-full font-bold">
+          {ringLabel}
+        </span>
         {isOpen ? <ChevronDown className="w-3 h-3 ml-0.5" /> : <ChevronUp className="w-3 h-3 ml-0.5" />}
       </button>
     </div>

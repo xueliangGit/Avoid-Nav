@@ -90,7 +90,7 @@ function buildPopupHtml(
 
 export function useAMap(
   containerId: string,
-  ringFilter: RingFilter = 'all',
+  ringFilter: RingFilter = 'inside',
   isDark: boolean = false,
   onPointClick?: (pointData: any) => void,
 ): UseAMapResult {
@@ -173,7 +173,14 @@ export function useAMap(
         }
         allMassDataRef.current = massData;
 
-        const massMarks = new AMapLib.MassMarks(massData, {
+        const initialMassData =
+          ringFilter === 'all'
+            ? massData
+            : ringFilter === 'inside'
+            ? massData.filter((d) => d._aa !== '6')
+            : massData.filter((d) => d._aa === '6');
+
+        const massMarks = new AMapLib.MassMarks(initialMassData, {
           zIndex: 1000,
           zooms: [3, 20],
           style: massStyles,

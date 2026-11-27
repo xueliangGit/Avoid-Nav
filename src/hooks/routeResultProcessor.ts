@@ -43,7 +43,7 @@ export function processDrivingRouteResult(
         direction: cam.direction,
       });
     },
-    current.ringFilter ?? 'all',
+    current.ringFilter ?? 'inside',
     {
       avoidDeadPoints: current.avoidDeadPoints ?? false,
       forcedIds: current.forcedRiskIds,

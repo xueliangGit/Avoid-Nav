@@ -222,7 +222,7 @@ export function useRoutePlanner(
               newKeysThisRound.push(id);
             }
           },
-          current.ringFilter ?? 'all',
+          current.ringFilter ?? 'inside',
           {
             avoidDeadPoints: current.avoidDeadPoints ?? false,
             forcedIds: current.forcedRiskIds,

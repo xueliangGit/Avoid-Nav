@@ -311,7 +311,7 @@ export function scanPathRisks(
   pathPoints: LngLat[],
   scanRadiusKm: number = DEFAULT_SCAN_RADIUS_KM,
   onIgnore?: (camera: CameraPoint, carAngle: number, targetAngle: number | null) => void,
-  ringFilter: RingFilter = 'all',
+  ringFilter: RingFilter = 'inside',
   opts: ScanOptions = {},
 ): Map<string, RouteRisk> {
   const risks = new Map<string, RouteRisk>();

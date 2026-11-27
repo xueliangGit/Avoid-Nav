@@ -60,7 +60,7 @@ export function computeRouteFingerprint(input: RouteFingerprintInput): string {
   const ignoredPart = ignoredSet.sort().join(',');
   const forcedPart = forcedSet.sort().join(',');
 
-  const optionsPart = `${input.riskAvoidSize || 'medium'}:${input.ringFilter || 'all'}:${
+  const optionsPart = `${input.riskAvoidSize || 'medium'}:${input.ringFilter || 'inside'}:${
     input.avoidDeadPoints ? '1' : '0'
   }`;
 

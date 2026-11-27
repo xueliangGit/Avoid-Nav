@@ -1,15 +1,19 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { extractKeyPoints } from '@/lib/utils/path-keypoints';
+import { generateNavWaypoints } from '@/lib/navigation/navWaypointHelper';
 import { buildAmapNavUri, detectPlatform, isWechat } from '@/lib/navigation';
-import type { LngLat, PlaceItem } from '@/lib/types';
+import type { LngLat, ManualAvoidArea, PlaceItem, RingFilter, RouteRisk, Waypoint } from '@/lib/types';
 
 interface UseNavigationActionProps {
   start: PlaceItem | null;
   end: PlaceItem | null;
   routePath: LngLat[];
   planning: boolean;
+  avoidedRisks?: RouteRisk[];
+  manualAvoidAreas?: ManualAvoidArea[];
+  waypoints?: Waypoint[];
+  ringFilter?: RingFilter;
 }
 
 export function useNavigationAction({
@@ -17,6 +21,10 @@ export function useNavigationAction({
   end,
   routePath,
   planning,
+  avoidedRisks = [],
+  manualAvoidAreas = [],
+  waypoints = [],
+  ringFilter = 'inside',
 }: UseNavigationActionProps) {
   const [wechatGuideOpen, setWechatGuideOpen] = useState(false);
 
@@ -32,12 +40,15 @@ export function useNavigationAction({
 
     const platform = detectPlatform();
 
-    // 途经点 = 避让后路径上的 RDP 关键点
-    const autoPoints = extractKeyPoints(routePath, 14).map((p, i) => ({
-      lng: p.lng,
-      lat: p.lat,
-      name: `关键点${i + 1}`,
-    }));
+    // 差量精准途经点（六环外0点，迎风取辅路入口，出环前关门锚点保障绝对安全）
+    const autoPoints = generateNavWaypoints({
+      routePath,
+      avoidedRisks,
+      manualAvoidAreas,
+      waypoints,
+      ringFilter,
+      maxWaypoints: 14,
+    });
 
     const uri = buildAmapNavUri({
       start,
@@ -52,7 +63,7 @@ export function useNavigationAction({
       // 移动端使用 deep link 唤起高德地图 App
       window.location.href = uri;
     }
-  }, [start, end, routePath]);
+  }, [start, end, routePath, avoidedRisks, manualAvoidAreas, waypoints, ringFilter]);
 
   return {
     canNavigate,

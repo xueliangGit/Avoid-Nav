@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { PlaceItem } from '@/lib/types';
+import type { PlaceItem, RingFilter } from '@/lib/types';
 import type { RouteInfo } from '@/components/Map/ControlPanel';
 import MobileCapsuleHeader from '@/components/Map/components/MobileCapsuleHeader';
 import MobileRouteSummaryBar from '@/components/Map/components/MobileRouteSummaryBar';
@@ -31,6 +31,8 @@ interface Props {
   onOpenHistory: () => void;
   onOpenChangelog?: () => void;
   hasNewUpdate?: boolean;
+  ringFilter?: RingFilter;
+  onChangeRingFilter?: (filter: RingFilter) => void;
 }
 
 export default function MobileLayout({
@@ -57,6 +59,8 @@ export default function MobileLayout({
   onOpenHistory,
   onOpenChangelog,
   hasNewUpdate = false,
+  ringFilter,
+  onChangeRingFilter,
 }: Props) {
   const [internalModalOpen, setInternalModalOpen] = useState(false);
   const isControlled = controlledModalOpen !== undefined;
@@ -102,6 +106,8 @@ export default function MobileLayout({
         planning={planning}
         status={status}
         hasNewUpdate={hasNewUpdate}
+        ringFilter={ringFilter}
+        onChangeRingFilter={onChangeRingFilter}
         onOpenPlannerModal={handleOpenPlanner}
         onOpenSettings={onOpenSettings}
         onOpenHistory={onOpenHistory}

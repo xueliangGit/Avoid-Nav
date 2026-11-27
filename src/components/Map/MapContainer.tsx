@@ -37,7 +37,7 @@ const MAP_CONTAINER_ID = 'container';
 
 const MapContainer = () => {
   // 六环内外筛选与避让设置
-  const [ringFilter, setRingFilter] = useState<RingFilter>('all');
+  const [ringFilter, setRingFilter] = useState<RingFilter>('inside');
   const [avoidDeadPoints, setAvoidDeadPoints] = useState(false);
   const [riskAvoidSize, setRiskAvoidSize] = useState<ManualAvoidSize>('medium');
 
@@ -160,6 +160,14 @@ const MapContainer = () => {
     }
   }, [start, end]);
 
+  const handleRingFilterChange = useCallback(
+    (filter: RingFilter) => {
+      setRingFilter(filter);
+      handleCameraSettingChange();
+    },
+    [handleCameraSettingChange],
+  );
+
   const handleApplyPendingReplan = useCallback(async () => {
     setHasPendingReplan(false);
     await plan({ forceFresh: true });
@@ -279,6 +287,10 @@ const MapContainer = () => {
     end,
     routePath,
     planning,
+    avoidedRisks,
+    manualAvoidAreas,
+    waypoints,
+    ringFilter,
   });
 
   const { canShare, handleShareRoute } = useRouteSharing({
@@ -442,6 +454,8 @@ const MapContainer = () => {
       canNavigate={canNavigate}
       onShareRoute={handleShareRoute}
       canShare={canShare}
+      ringFilter={ringFilter}
+      onChangeRingFilter={handleRingFilterChange}
       variant={panelVariant}
     />
   );
@@ -493,6 +507,8 @@ const MapContainer = () => {
       onOpenSettings={() => setSettingsOpen(true)}
       onOpenHistory={handleOpenHistory}
       onOpenChangelog={handleOpenChangelog}
+      ringFilter={ringFilter}
+      onChangeRingFilter={handleRingFilterChange}
     />
   );
 
@@ -503,7 +519,7 @@ const MapContainer = () => {
   return (
     <div className="relative w-full h-full bg-surface-2 overflow-hidden text-fg-2">
       {layoutContent}
-      <MapLegend />
+      <MapLegend ringFilter={ringFilter} />
 
       {/* 智能六环走廊绕行推荐卡片 */}
       <CorridorSuggestionCard
@@ -535,7 +551,7 @@ const MapContainer = () => {
         riskAvoidSize={riskAvoidSize}
         onChangeRiskAvoidSize={setRiskAvoidSize}
         ringFilter={ringFilter}
-        onChangeRingFilter={setRingFilter}
+        onChangeRingFilter={handleRingFilterChange}
         avoidDeadPoints={avoidDeadPoints}
         onChangeAvoidDeadPoints={setAvoidDeadPoints}
         theme={theme}

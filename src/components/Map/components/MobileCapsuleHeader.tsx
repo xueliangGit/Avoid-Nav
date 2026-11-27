@@ -1,7 +1,8 @@
 'use client';
 
 import { Settings, History, Loader2, Layers } from 'lucide-react';
-import type { PlaceItem } from '@/lib/types';
+import type { PlaceItem, RingFilter } from '@/lib/types';
+import RingFilterSwitch from './RingFilterSwitch';
 
 interface MobileCapsuleHeaderProps {
   start: PlaceItem | null;
@@ -9,6 +10,8 @@ interface MobileCapsuleHeaderProps {
   planning: boolean;
   status: string | null;
   hasNewUpdate?: boolean;
+  ringFilter?: RingFilter;
+  onChangeRingFilter?: (filter: RingFilter) => void;
   onOpenPlannerModal: () => void;
   onOpenSettings: () => void;
   onOpenHistory: () => void;
@@ -21,6 +24,8 @@ export default function MobileCapsuleHeader({
   planning,
   status,
   hasNewUpdate = false,
+  ringFilter,
+  onChangeRingFilter,
   onOpenPlannerModal,
   onOpenSettings,
   onOpenHistory,
@@ -111,14 +116,23 @@ export default function MobileCapsuleHeader({
         </div>
       </div>
 
-      {/* 算路进行时的状态徽标 */}
-      {status && (
-        <div className="flex items-center px-1 pointer-events-auto">
-          <span className="text-[10px] bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg font-bold tracking-wider animate-pulse shadow-md">
+      {/* 算路进行时的状态徽标与六环范围快捷切换 */}
+      <div className="flex items-center justify-between px-1 pointer-events-auto">
+        {onChangeRingFilter && ringFilter ? (
+          <RingFilterSwitch
+            value={ringFilter}
+            onChange={onChangeRingFilter}
+            variant="float"
+          />
+        ) : (
+          <div />
+        )}
+        {status && (
+          <span className="text-[10px] bg-indigo-600 text-white px-2.5 py-1 rounded-lg font-bold tracking-wider animate-pulse shadow-md">
             {status}
           </span>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
