@@ -33,11 +33,9 @@ function getDistanceM(a: LngLat, b: LngLat): number {
 /** 判断某坐标是否处于六环内监控/敏感管控带周边（3.5km 辐射圈内） */
 function isNearControlZone(point: LngLat, ringFilter: RingFilter): boolean {
   if (ringFilter === 'all') {
-    // 全部模式：全北京市监控均属管控区
     const nearby = spatialIndex.search(point.lng, point.lat, 3.5);
     return nearby.length > 0;
   }
-  // 仅六环内模式：仅六环内探头(type !== '6')属于需严防被高德抄近道的敏感区
   const nearby = spatialIndex.search(point.lng, point.lat, 3.5);
   return nearby.some((c) => c.type !== '6');
 }
@@ -51,13 +49,13 @@ interface CandidatePoint {
 }
 
 /**
- * 差量精准与敏感带防偏导航途经点生成器
- * 核心原理：
- * 1. 绝对优先保留用户手动设置的途经点与避让区（P0）
- * 2. 空间敏感带感知：在六环内及六环高速走廊边缘（3.5km内有进京管控），高德极易诱导上主路/六环高速，
- *    在此区间使用精细 RDP 抽稀与最大 3.5km 间距约束，把车死死锁在规划出的地面辅路/非管制路线上。
- * 3. 远郊自由安全区（如怀柔密云深处远离六环）：大幅放宽间距（18km），绝不多插点。
- * 4. 800m 最小间距去密合并，杜绝报点轰炸，总点数严格控制在 14 个以内。
+ * 决策拐点精准提取器（零直道冗余）
+ * 核心优化原则：
+ * 1. 废除所有直线上按固定距离生硬打点的逻辑：直道上没有分流风险，坚决 0 打点
+ * 2. 仅在真正的决策拐点（路口转向、匝道分流）打点，确保高德转向路径与规划完全一致
+ * 3. 敏感管控区（六环内及走廊）：抓取关键转折路口（1.2km 防抖合并），杜绝上六环高速
+ * 4. 远郊自由安全区：大幅稀疏，仅保留超过 20km 的干道大转折点，直路一律不打点
+ * 5. 用户手动添加的点（P0）绝对优先保留
  */
 export function generateNavWaypoints({
   routePath,
@@ -111,16 +109,14 @@ export function generateNavWaypoints({
     });
   }
 
-  // 3. 将路径划分为【敏感管控区】与【安全自由区】进行自适应采样
-  // 敏感管控区（六环内及六环走廊周边）：几何精度高（epsilon ≈ 100m），最大步长 3.5km，确保高德不上高速主路
-  // 安全自由区（远离六环的远郊）：几何精度低，最大步长 18km，绝不多插点
-  const sampledPoints: CandidatePoint[] = [];
-  let accumulatedDist = 0;
+  // 3. 几何决策拐点提取（仅在道路发生实质性转向/变向处采点，直道上绝对不采点）
+  // 敏感管控区精度约 150m (0.0014°)，远郊安全区精度约 800m (0.0075°)
+  const rdpSensitive = rdp(routePath, 0.0014);
+  const rdpSafe = rdp(routePath, 0.0075);
 
-  // 使用精细 RDP 提取路径的所有主要拐点索引
-  const rdpPoints = rdp(routePath, 0.001); // 约 110m 几何精度
-  const rdpIndices = new Set<number>();
-  for (const rp of rdpPoints) {
+  const keyIndices = new Map<number, boolean>(); // index -> isSensitive
+
+  for (const rp of rdpSensitive) {
     let bestIdx = 0;
     let bestDist = Infinity;
     for (let i = 0; i < routePath.length; i++) {
@@ -131,36 +127,39 @@ export function generateNavWaypoints({
         if (d < 10) break;
       }
     }
-    rdpIndices.add(bestIdx);
-  }
-
-  for (let i = 1; i < routePath.length - 1; i++) {
-    const pt = routePath[i]!;
-    const prevPt = routePath[i - 1]!;
-    accumulatedDist += getDistanceM(prevPt, pt);
-
-    const isSensitive = isNearControlZone(pt, ringFilter);
-    const maxGap = isSensitive ? 3500 : 18000; // 敏感区 3.5km 必有一点，安全区 18km
-    const isRdpCorner = rdpIndices.has(i);
-
-    // 触发采样条件：
-    // a. 在敏感管控区且属于 RDP 几何拐点，且距上个采样点 >= 800米
-    // b. 跨度达到最大间距（敏感区 3.5km，防止两点之间被高德拉上六环高速）
-    if (
-      (isSensitive && isRdpCorner && accumulatedDist >= 800) ||
-      accumulatedDist >= maxGap
-    ) {
-      sampledPoints.push({
-        index: i,
-        lng: pt.lng,
-        lat: pt.lat,
-        name: isSensitive ? '避让地面走廊' : '骨干道路转折',
-      });
-      accumulatedDist = 0;
+    const isSensitive = isNearControlZone(routePath[bestIdx]!, ringFilter);
+    if (isSensitive) {
+      keyIndices.set(bestIdx, true);
     }
   }
 
-  candidates.push(...sampledPoints);
+  // 远郊安全区仅保留大跨度骨干转折点
+  for (const rp of rdpSafe) {
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < routePath.length; i++) {
+      const d = getDistanceM(routePath[i]!, rp);
+      if (d < bestDist) {
+        bestDist = d;
+        bestIdx = i;
+        if (d < 15) break;
+      }
+    }
+    const isSensitive = isNearControlZone(routePath[bestIdx]!, ringFilter);
+    if (!isSensitive && !keyIndices.has(bestIdx)) {
+      keyIndices.set(bestIdx, false);
+    }
+  }
+
+  for (const [idx, isSensitive] of keyIndices.entries()) {
+    const pt = routePath[idx]!;
+    candidates.push({
+      index: idx,
+      lng: pt.lng,
+      lat: pt.lat,
+      name: isSensitive ? '避让地面走廊' : '骨干道路转折',
+    });
+  }
 
   // 4. 按路径自然顺序排序
   candidates.sort((a, b) => a.index - b.index);
@@ -173,7 +172,7 @@ export function generateNavWaypoints({
     return distToStart >= 350 && distToEnd >= 350;
   });
 
-  // 6. 800米最小间距去密合并（防导航语音轰炸）
+  // 6. 动态防抖去密（敏感区保持 1.2km 间距，远郊保持 10km 间距，消除直道和微弯冗余）
   const deduped: CandidatePoint[] = [];
   for (const item of validCandidates) {
     if (deduped.length === 0) {
@@ -183,14 +182,15 @@ export function generateNavWaypoints({
 
     const prev = deduped[deduped.length - 1]!;
     const distFromPrev = getDistanceM(prev, item);
+    const isSensitive = isNearControlZone(item, ringFilter);
+    const minSpacing = isSensitive ? 1200 : 10000;
 
-    // 用户点一律保留；自动点间距 < 800 米时合并
-    if (item.isUserP0 || distFromPrev >= 800) {
+    if (item.isUserP0 || distFromPrev >= minSpacing) {
       deduped.push(item);
     }
   }
 
-  // 7. 截取最多 maxWaypoints 并规范命名
+  // 7. 截取最多 maxWaypoints 并规范命名（通常精简为 3~6 个核心决策点）
   return deduped.slice(0, maxWaypoints).map((p, i) => ({
     lng: p.lng,
     lat: p.lat,
